@@ -22,3 +22,77 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+
+# =========================
+# React / Vite
+# =========================
+
+node_modules/
+dist/
+build/
+
+.env
+.env.local
+.env.development.local
+.env.production.local
+
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# =========================
+# Django
+# =========================
+
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual Environment
+venv/
+env/
+.venv/
+
+# Django
+db.sqlite3
+media/
+
+# Logs
+*.log
+
+# Static Files
+staticfiles/
+
+# Migrations (ถ้าไม่ต้องการเก็บ)
+# */migrations/*
+# !*/migrations/__init__.py
+
+# Environment Variables
+.env
+
+# Pytest
+.pytest_cache/
+
+# Coverage
+.coverage
+htmlcov/
+
+# MyPy
+.mypy_cache/
+
+# =========================
+# Git
+# =========================
+
+*.swp
+*.swo
