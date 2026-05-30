@@ -1,0 +1,62 @@
+
+@import "tailwindcss";
+
+@theme {
+  /* กำหนดสีหลักของ ZenseExam ไว้ใช้ซ้ำได้ทั่วโปรเจกต์ */
+  --color-zense-navy: #1a3673;
+  --color-zense-light: #f0f4f9;
+  
+  /* ปรับแต่งความโค้งมนที่เป็นเอกลักษณ์ */
+  --radius-zense: 2.5rem;
+}
+
+@layer components {
+  /* สร้าง Class แยกสำหรับการคำนวณ Layout ที่ซับซ้อน */
+  .input-field {
+    @apply w-full px-5 py-3.5 bg-[#f8faff] border border-slate-100 rounded-xl 
+           focus:ring-2 focus:ring-blue-500 focus:bg-white outline-none 
+           transition-all text-sm;
+  }
+
+  .btn-primary {
+    @apply w-full bg-zense-navy hover:bg-[#152c5e] text-white font-bold 
+           py-4 rounded-xl shadow-lg shadow-blue-900/10 transition-all 
+           mt-4 active:scale-[0.99];
+  }
+
+  /* Role switch animation: small pop + lift for selected tab */
+  @keyframes roleSwitch {
+    0% { transform: translateY(0) scale(1); }
+    30% { transform: translateY(-6px) scale(1.03); }
+    100% { transform: translateY(0) scale(1); }
+  }
+
+  .role-animate {
+    animation: roleSwitch 420ms cubic-bezier(.2,.9,.3,1);
+  }
+
+  /* Brief background flash to indicate role selection */
+  @keyframes roleFlash {
+    0% { background-color: transparent; transform: scale(1); }
+    25% { background-color: #dbefff; transform: scale(1.02); }
+    60% { background-color: #dbefff; transform: scale(1.01); }
+    100% { background-color: transparent; transform: scale(1); }
+  }
+
+  .role-flash {
+    animation: roleFlash 700ms ease-in-out both;
+  }
+
+  /* Small toast that appears when role changes */
+  @keyframes roleToastFade {
+    0% { opacity: 0; transform: translateY(6px); }
+    10% { opacity: 1; transform: translateY(0); }
+    90% { opacity: 1; transform: translateY(0); }
+    100% { opacity: 0; transform: translateY(-6px); }
+  }
+
+  .role-toast {
+    @apply mx-auto mt-3 inline-block px-3 py-1 rounded-full text-xs font-semibold text-zense-navy bg-zense-light/80 border border-slate-100;
+    animation: roleToastFade 1400ms ease-in-out both;
+  }
+}
