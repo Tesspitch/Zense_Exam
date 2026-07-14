@@ -285,3 +285,95 @@ def ocr_image_to_latex(request):
         return JsonResponse({'latex': result_text}, status=200)
     except Exception as e:
         return JsonResponse({'error': f'AI Processing Error: {str(e)}'}, status=500)
+
+
+@csrf_exempt
+def teacher_question_detail(request, qt_id):
+    auth_header = request.headers.get('Authorization')
+    if not auth_header or not auth_header.startswith('Bearer '):
+        return JsonResponse({'error': 'Unauthorized'}, status=401)
+
+    token = auth_header.split(' ')[1]
+    try:
+        decoded = jwt.decode(token, settings.SECRET_KEY, algorithms=['HS256'])
+    except jwt.ExpiredSignatureError:
+        return JsonResponse({'error': 'Session expired'}, status=401)
+    except Exception:
+        return JsonResponse({'error': 'Invalid token'}, status=401)
+
+    role = decoded.get('role')
+    if role != 'Teacher':
+        return JsonResponse({'error': 'Forbidden'}, status=403)
+
+    user_id = decoded.get('user_id')
+    try:
+        teacher = Teacher.objects.filter(teacher_id=user_id).first()
+        if not teacher:
+            return JsonResponse({'error': 'Teacher not found'}, status=404)
+
+        question = Question.objects.filter(qt_id=qt_id, chap_id__sj_id__teacher_id=teacher).first()
+        if not question:
+            return JsonResponse({'error': 'Question not found or does not belong to you'}, status=404)
+
+        if request.method == 'DELETE':
+            question.delete()
+            return JsonResponse({'message': 'Question deleted successfully'}, status=200)
+
+        elif request.method == 'PUT':
+            try:
+                body = json.loads(request.body)
+                chap_id = body.get('chap_id')
+                qt_detail = body.get('qt_detail')
+                qt_image_url = body.get('qt_image_url')
+                qt_diff_lv = body.get('qt_diff_lv')
+                choices = body.get('choices', [])
+
+                if not chap_id or not qt_detail or not qt_diff_lv:
+                    return JsonResponse({'error': 'chap_id, qt_detail, and qt_diff_lv are required'}, status=400)
+
+                chapter = Chapter.objects.filter(chap_id=chap_id, sj_id__teacher_id=teacher).first()
+                if not chapter:
+                    return JsonResponse({'error': 'Course not found or does not belong to you'}, status=404)
+
+                question.chap_id = chapter
+                question.qt_detail = qt_detail
+                question.qt_image_url = qt_image_url
+                question.qt_diff_lv = qt_diff_lv
+                
+                # Check if this question is part of a scenario/group
+                shared_text = body.get('shared_text')
+                shared_image_url = body.get('shared_image_url')
+                group_id = body.get('group_id')
+                
+                group = None
+                if group_id:
+                    group = QuestionGroup.objects.filter(group_id=group_id, teacher_id=teacher).first()
+                elif shared_text or shared_image_url:
+                    # check if the current question's group matches
+                    if question.group_id and question.group_id.shared_text == shared_text and question.group_id.shared_image_url == shared_image_url:
+                        group = question.group_id
+                    else:
+                        group = QuestionGroup(teacher_id=teacher, shared_text=shared_text, shared_image_url=shared_image_url)
+                        group.save()
+                
+                question.group_id = group
+                question.save()
+
+                Choice.objects.filter(qt_id=question).delete()
+                for choice in choices:
+                    Choice.objects.create(
+                        qt_id=question,
+                        choice_detail=choice.get('choice_detail', ''),
+                        choice_image_url=choice.get('choice_image_url', ''),
+                        choice_correct=choice.get('choice_correct', False)
+                    )
+
+                return JsonResponse({'message': 'Question updated successfully'}, status=200)
+
+            except json.JSONDecodeError:
+                return JsonResponse({'error': 'Invalid JSON'}, status=400)
+        else:
+            return JsonResponse({'error': 'Method not allowed'}, status=405)
+
+    except Exception as e:
+        return JsonResponse({'error': f'Server Error: {str(e)}'}, status=500)

@@ -12,6 +12,7 @@ urlpatterns = [
         path('teacher/courses/', views.teacher_courses, name='teacher_courses'),
         path('teacher/courses/<str:chap_id>/', views.teacher_course_detail, name='teacher_course_detail'),
         path('teacher/questions/', views.teacher_questions, name='teacher_questions'),
+        path('teacher/questions/<str:qt_id>/', views.teacher_question_detail, name='teacher_question_detail'),
         path('teacher/questions/bulk/', views.teacher_questions_bulk, name='teacher_questions_bulk'),
         path('teacher/math-ocr/', views.ocr_image_to_latex, name='ocr_image_to_latex'),
         path('upload-image/', views.upload_image, name='upload_image'),

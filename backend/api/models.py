@@ -139,7 +139,7 @@ class std_answer(models.Model):
     ans_id = models.IntegerField(primary_key=True)
     result_exam_id = models.ForeignKey(result_exam, on_delete=models.CASCADE, db_column='result_exam_id')
     choice_id = models.ForeignKey(Choice, on_delete=models.CASCADE, db_column='choice_id')
-    qt_id = models.ForeignKey(Question, on_delete=models.CASCADE)
+    qt_id = models.ForeignKey(Question, on_delete=models.CASCADE, db_column='qt_id')
     ans = models.IntegerField()
     
     class Meta:

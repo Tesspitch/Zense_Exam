@@ -11,13 +11,19 @@ const QuestionBank = () => {
   const [courses, setCourses] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  
+
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCourse, setSelectedCourse] = useState('');
-  
+
+  // Delete Modal state
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [questionToDelete, setQuestionToDelete] = useState(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+
   // Modal state
   const [isModalOpen, setIsModalOpen] = useState(false);
-  
+  const [editingId, setEditingId] = useState(null);
+
   const [formData, setFormData] = useState({
     chap_id: '',
     qt_diff_lv: 'Medium',
@@ -30,7 +36,7 @@ const QuestionBank = () => {
       { choice_detail: '', choice_image_url: '', choice_correct: false }
     ]
   });
-  
+
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState('');
   const [isOcrLoading, setIsOcrLoading] = useState(false);
@@ -39,21 +45,21 @@ const QuestionBank = () => {
   const handleOcrUpload = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
-    
+
     setIsOcrLoading(true);
     const formDataObj = new FormData();
     formDataObj.append('image', file);
     formDataObj.append('mode', ocrMode);
-    
+
     try {
       const token = localStorage.getItem('token');
       const res = await axios.post('http://localhost:8000/api/teacher/math-ocr/', formDataObj, {
-        headers: { 
+        headers: {
           Authorization: `Bearer ${token}`,
           'Content-Type': 'multipart/form-data'
         }
       });
-      
+
       const latex = res.data.latex;
       setFormData(prev => ({
         ...prev,
@@ -74,12 +80,12 @@ const QuestionBank = () => {
     try {
       const token = localStorage.getItem('token');
       if (!token) throw new Error('No auth token');
-      
+
       const [questionsRes, coursesRes] = await Promise.all([
         axios.get('http://localhost:8000/api/teacher/questions/', { headers: { Authorization: `Bearer ${token}` } }),
         axios.get('http://localhost:8000/api/teacher/courses/', { headers: { Authorization: `Bearer ${token}` } })
       ]);
-      
+
       setQuestions(questionsRes.data.questions || []);
       setCourses(coursesRes.data.courses || []);
     } catch (err) {
@@ -102,10 +108,10 @@ const QuestionBank = () => {
   const handleChoiceChange = (index, field, value) => {
     const updatedChoices = [...formData.choices];
     updatedChoices[index][field] = value;
-    
+
     // If setting a choice as correct, we might want to uncheck others if it's single choice, 
     // but the UI allows checkboxes so it might be multiple choice. We'll allow multiple.
-    
+
     setFormData({ ...formData, choices: updatedChoices });
   };
 
@@ -126,19 +132,29 @@ const QuestionBank = () => {
     e.preventDefault();
     setSubmitError('');
     setIsSubmitting(true);
-    
+
     try {
       const token = localStorage.getItem('token');
       if (!token) throw new Error('No auth token');
-      
-      await axios.post('http://localhost:8000/api/teacher/questions/', formData, {
-        headers: { 
-          Authorization: `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
-      });
-      
+
+      if (editingId) {
+        await axios.put(`http://localhost:8000/api/teacher/questions/${editingId}/`, formData, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
+        });
+      } else {
+        await axios.post('http://localhost:8000/api/teacher/questions/', formData, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
+        });
+      }
+
       setIsModalOpen(false);
+      setEditingId(null);
       setFormData({
         chap_id: '', qt_diff_lv: 'Medium', qt_detail: '', qt_image_url: '',
         shared_text: '', shared_image_url: '',
@@ -162,6 +178,52 @@ const QuestionBank = () => {
     return matchesSearch && matchesCourse;
   });
 
+  const handleEditQuestion = (q) => {
+    setEditingId(q.qt_id);
+    setFormData({
+      chap_id: q.chap_id || '',
+      qt_diff_lv: q.qt_diff_lv || 'Medium',
+      qt_detail: q.qt_detail || '',
+      qt_image_url: q.qt_image_url || '',
+      shared_text: q.shared_text || '',
+      shared_image_url: q.shared_image_url || '',
+      choices: q.choices.length > 0 ? q.choices.map(c => ({
+        choice_id: c.choice_id,
+        choice_detail: c.choice_detail || '',
+        choice_image_url: c.choice_image_url || '',
+        choice_correct: c.choice_correct || false
+      })) : [
+        { choice_detail: '', choice_image_url: '', choice_correct: false },
+        { choice_detail: '', choice_image_url: '', choice_correct: false }
+      ]
+    });
+    setIsModalOpen(true);
+  };
+
+  const handleDeleteClick = (qtId) => {
+    setQuestionToDelete(qtId);
+    setDeleteModalOpen(true);
+  };
+
+  const confirmDelete = async () => {
+    if (!questionToDelete) return;
+    setIsDeleting(true);
+    try {
+      const token = localStorage.getItem('token');
+      await axios.delete(`http://localhost:8000/api/teacher/questions/${questionToDelete}/`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      setDeleteModalOpen(false);
+      setQuestionToDelete(null);
+      fetchData();
+    } catch (err) {
+      console.error(err);
+      alert(err.response?.data?.error || 'Failed to delete question');
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
   return (
     <div className="p-6">
       {/* Header */}
@@ -179,7 +241,18 @@ const QuestionBank = () => {
             Bulk Input
           </button>
           <button
-            onClick={() => setIsModalOpen(true)}
+            onClick={() => {
+              setEditingId(null);
+              setFormData({
+                chap_id: '', qt_diff_lv: 'Medium', qt_detail: '', qt_image_url: '',
+                shared_text: '', shared_image_url: '',
+                choices: [
+                  { choice_detail: '', choice_image_url: '', choice_correct: false },
+                  { choice_detail: '', choice_image_url: '', choice_correct: false }
+                ]
+              });
+              setIsModalOpen(true);
+            }}
             className="bg-zense-navy hover:bg-blue-900 text-white px-4 py-2 rounded-xl text-sm font-medium flex items-center gap-2 transition-colors shadow-sm"
           >
             <Plus size={18} />
@@ -222,7 +295,7 @@ const QuestionBank = () => {
           {filteredQuestions.length === 0 && !error && (
             <div className="text-center text-slate-500 py-10">No questions found.</div>
           )}
-          
+
           {filteredQuestions.map((q) => (
             <div key={q.qt_id} className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden flex flex-col p-5">
               <div className="flex justify-between items-start mb-3">
@@ -242,11 +315,10 @@ const QuestionBank = () => {
                     <span className="bg-blue-50 text-blue-700 text-xs font-semibold px-2.5 py-1 rounded-md">
                       {q.chap_name}
                     </span>
-                    <span className={`text-xs font-semibold px-2.5 py-1 rounded-md ${
-                      q.qt_diff_lv.toLowerCase() === 'easy' ? 'bg-green-50 text-green-700' :
+                    <span className={`text-xs font-semibold px-2.5 py-1 rounded-md ${q.qt_diff_lv.toLowerCase() === 'easy' ? 'bg-green-50 text-green-700' :
                       q.qt_diff_lv.toLowerCase() === 'medium' ? 'bg-yellow-50 text-yellow-700' :
-                      'bg-red-50 text-red-700'
-                    }`}>
+                        'bg-red-50 text-red-700'
+                      }`}>
                       {q.qt_diff_lv}
                     </span>
                     <span className="bg-slate-100 text-slate-600 text-xs font-semibold px-2.5 py-1 rounded-md">
@@ -255,15 +327,15 @@ const QuestionBank = () => {
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
-                  <button className="text-blue-500 hover:text-blue-700 transition-colors p-2 rounded-lg hover:bg-blue-50">
+                  <button onClick={() => handleEditQuestion(q)} className="text-blue-500 hover:text-blue-700 transition-colors p-2 rounded-lg hover:bg-blue-50">
                     <Edit3 size={16} />
                   </button>
-                  <button className="text-red-500 hover:text-red-700 transition-colors p-2 rounded-lg hover:bg-red-50">
+                  <button onClick={() => handleDeleteClick(q.qt_id)} className="text-red-500 hover:text-red-700 transition-colors p-2 rounded-lg hover:bg-red-50">
                     <Trash2 size={16} />
                   </button>
                 </div>
               </div>
-              
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-4">
                 {q.choices.map((c, idx) => (
                   <div key={c.choice_id || idx} className={`flex items-center p-3 rounded-xl border ${c.choice_correct ? 'border-green-500 bg-green-50' : 'border-slate-200 bg-slate-50'}`}>
@@ -290,17 +362,17 @@ const QuestionBank = () => {
           <div className="bg-white rounded-2xl w-full max-w-2xl mx-4 shadow-xl overflow-hidden max-h-[90vh] flex flex-col">
             <div className="flex items-center justify-between p-6 border-b border-slate-100 shrink-0">
               <div>
-                <h2 className="text-xl font-bold text-slate-800">Add New Question</h2>
+                <h2 className="text-xl font-bold text-slate-800">{editingId ? 'Edit Question' : 'Add New Question'}</h2>
                 <p className="text-sm text-slate-500 mt-1">Create a new multiple-choice question with unlimited choices</p>
               </div>
-              <button 
+              <button
                 onClick={() => setIsModalOpen(false)}
                 className="text-slate-400 hover:text-slate-600 p-1 rounded-lg hover:bg-slate-100 transition-colors"
               >
                 <X size={20} />
               </button>
             </div>
-            
+
             <div className="p-6 overflow-y-auto flex-1">
               <form id="add-question-form" onSubmit={handleSubmit}>
                 {submitError && (
@@ -308,7 +380,7 @@ const QuestionBank = () => {
                     {submitError}
                   </div>
                 )}
-                
+
                 <div className="space-y-5">
                   <div className="grid grid-cols-2 gap-4">
                     <div>
@@ -341,21 +413,21 @@ const QuestionBank = () => {
                       </select>
                     </div>
                   </div>
-                  
+
                   <div>
                     <div className="flex items-center justify-between mb-1.5">
                       <label className="block text-sm font-medium text-slate-700">Question Text</label>
                       <div className="flex items-center gap-2">
-                        <select 
-                          value={ocrMode} 
+                        <select
+                          value={ocrMode}
                           onChange={(e) => setOcrMode(e.target.value)}
                           className="text-xs border border-slate-200 rounded-lg px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-purple-500 bg-white"
                         >
                           <option value="math">LaTeX</option>
                           <option value="text">Text ปกติ</option>
                         </select>
-                        <button 
-                          type="button" 
+                        <button
+                          type="button"
                           onClick={() => document.getElementById('ocr-upload').click()}
                           className="text-xs bg-purple-100 text-purple-700 hover:bg-purple-200 px-3 py-1.5 rounded-lg flex items-center gap-1 font-semibold transition-colors shadow-sm"
                           disabled={isOcrLoading}
@@ -363,12 +435,12 @@ const QuestionBank = () => {
                           {isOcrLoading ? 'Scanning...' : '✨ แปลงรูปด้วย AI'}
                         </button>
                       </div>
-                      <input 
-                        type="file" 
-                        id="ocr-upload" 
-                        className="hidden" 
-                        accept="image/*" 
-                        onChange={handleOcrUpload} 
+                      <input
+                        type="file"
+                        id="ocr-upload"
+                        className="hidden"
+                        accept="image/*"
+                        onChange={handleOcrUpload}
                       />
                     </div>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -387,28 +459,28 @@ const QuestionBank = () => {
                       </div>
                     </div>
                   </div>
-                  
+
                   <div>
-                    <ImageUploadField 
-                      label="Question Image (optional)" 
-                      value={formData.qt_image_url} 
-                      onChange={(val) => setFormData(prev => ({...prev, qt_image_url: val}))} 
-                      placeholder="https://example.com/image.jpg" 
+                    <ImageUploadField
+                      label="Question Image (optional)"
+                      value={formData.qt_image_url}
+                      onChange={(val) => setFormData(prev => ({ ...prev, qt_image_url: val }))}
+                      placeholder="https://example.com/image.jpg"
                     />
                   </div>
-                  
+
                   <div>
                     <div className="flex items-center justify-between mb-3">
                       <label className="block text-sm font-medium text-slate-700">Answer Choices (Minimum 2)</label>
-                      <button 
-                        type="button" 
+                      <button
+                        type="button"
                         onClick={addChoice}
                         className="text-blue-600 hover:text-blue-800 text-sm font-medium flex items-center gap-1"
                       >
                         <Plus size={16} /> Add Choice
                       </button>
                     </div>
-                    
+
                     <div className="space-y-3">
                       {formData.choices.map((choice, index) => (
                         <div key={index} className={`p-4 rounded-xl border ${choice.choice_correct ? 'border-green-300 bg-green-50/30' : 'border-slate-200 bg-white'}`}>
@@ -439,16 +511,16 @@ const QuestionBank = () => {
                                 </div>
                               </div>
                               <div className="pl-8">
-                                <ImageUploadField 
-                                  value={choice.choice_image_url} 
-                                  onChange={(val) => handleChoiceChange(index, 'choice_image_url', val)} 
-                                  placeholder="Choice Image URL (optional)" 
+                                <ImageUploadField
+                                  value={choice.choice_image_url}
+                                  onChange={(val) => handleChoiceChange(index, 'choice_image_url', val)}
+                                  placeholder="Choice Image URL (optional)"
                                 />
                               </div>
                             </div>
                             {formData.choices.length > 2 && (
-                              <button 
-                                type="button" 
+                              <button
+                                type="button"
                                 onClick={() => removeChoice(index)}
                                 className="mt-2 text-slate-400 hover:text-red-500 p-1 rounded-lg transition-colors"
                               >
@@ -463,20 +535,54 @@ const QuestionBank = () => {
                 </div>
               </form>
             </div>
-            
-            <div className="p-6 border-t border-slate-100 bg-slate-50 shrink-0">
-              <button
-                form="add-question-form"
-                type="submit"
-                disabled={isSubmitting}
-                className="w-full bg-zense-navy hover:bg-blue-900 text-white font-medium py-2.5 rounded-xl transition-colors disabled:opacity-70 flex justify-center"
-              >
-                {isSubmitting ? 'Creating...' : 'Create Question'}
+
+            <div className="p-6 border-t border-slate-100 bg-slate-50 shrink-0 flex gap-3">
+              <button type="button" onClick={() => { setIsModalOpen(false); setEditingId(null); }} className="px-5 py-2.5 text-slate-600 hover:bg-slate-100 font-medium rounded-xl transition-colors">
+                Cancel
+              </button>
+              <button type="submit" form="add-question-form" disabled={isSubmitting} className="px-6 py-2.5 bg-zense-navy hover:bg-blue-900 text-white font-medium rounded-xl transition-colors shadow-sm disabled:opacity-50 flex-1">
+                {isSubmitting ? 'Saving...' : (editingId ? 'Save Changes' : 'Create Question')}
               </button>
             </div>
           </div>
         </div>
       )}
+      {/* Delete Confirmation Modal */}
+      {deleteModalOpen && (
+        <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl w-full max-w-md shadow-xl overflow-hidden p-6 animate-in fade-in zoom-in duration-200">
+            <div className="flex flex-col items-center text-center">
+              <div className="w-16 h-16 bg-red-100 text-red-500 rounded-full flex items-center justify-center mb-4">
+                <Trash2 size={32} />
+              </div>
+              <h2 className="text-xl font-bold text-slate-800 mb-2">Delete Question</h2>
+              <p className="text-slate-500 mb-6">
+                Are you sure you want to delete this question? This action cannot be undone.
+              </p>
+              <div className="flex gap-3 w-full">
+                <button
+                  onClick={() => {
+                    setDeleteModalOpen(false);
+                    setQuestionToDelete(null);
+                  }}
+                  disabled={isDeleting}
+                  className="flex-1 px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium rounded-xl transition-colors disabled:opacity-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={confirmDelete}
+                  disabled={isDeleting}
+                  className="flex-1 px-4 py-2.5 bg-red-500 hover:bg-red-600 text-white font-medium rounded-xl transition-colors shadow-sm disabled:opacity-50 flex justify-center items-center gap-2"
+                >
+                  {isDeleting ? 'Deleting...' : 'Delete'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 };
