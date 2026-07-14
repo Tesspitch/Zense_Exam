@@ -3,7 +3,7 @@ import jwt
 from django.conf import settings
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
-from ..services.profile_service import ProfileService
+from api.services.profile_service import ProfileService
 
 
 def _decode_auth(request):

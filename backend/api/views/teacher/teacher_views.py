@@ -3,7 +3,7 @@ from django.conf import settings
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.db.models import Avg, Sum
-from ..models import Teacher, Subject, Exam_set, Question, Online_exam, detail_online_exam, result_exam
+from api.models import Teacher, Subject, Exam_set, Question, Online_exam, detail_online_exam, result_exam
 
 
 @csrf_exempt

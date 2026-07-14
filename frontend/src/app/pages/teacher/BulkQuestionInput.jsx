@@ -184,28 +184,28 @@ const BulkQuestionInput = () => {
   return (
     <div className="min-h-screen bg-slate-50 pb-20">
       {/* Top Bar */}
-      <div className="bg-white border-b border-slate-200 sticky top-0 z-40">
-        <div className="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
+      <div className="bg-white border-b border-slate-200 sticky top-0 z-40 shadow-sm">
+        <div className="max-w-6xl mx-auto px-4 md:px-6 py-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <div>
             <div className="flex items-center gap-2 text-sm text-slate-500 mb-1">
               <button onClick={() => navigate('/teacher/questions')} className="hover:text-blue-600 flex items-center gap-1 transition-colors">
                 <ArrowLeft size={14} /> Back to Bank
               </button>
             </div>
-            <h1 className="text-2xl font-bold text-slate-800">Bulk Question Input</h1>
-            <p className="text-sm text-slate-500">Add multiple questions in a single session</p>
+            <h1 className="text-2xl font-bold text-slate-800">Bulk Input Questions</h1>
+            <p className="text-sm text-slate-500 mt-1">Add multiple questions at once</p>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex flex-wrap gap-3 w-full sm:w-auto">
             <button
               onClick={() => navigate('/teacher/questions')}
-              className="px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-100 rounded-lg transition-colors"
+              className="flex-1 sm:flex-none justify-center px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-100 rounded-lg transition-colors"
             >
               Cancel
             </button>
             <button
               onClick={handleSaveAll}
               disabled={isSubmitting || completedCount === 0}
-              className="bg-green-600 hover:bg-green-700 text-white px-5 py-2 rounded-lg text-sm font-medium flex items-center gap-2 transition-colors disabled:opacity-50"
+              className="flex-1 sm:flex-none justify-center bg-green-600 hover:bg-green-700 text-white px-5 py-2 rounded-lg text-sm font-medium flex items-center gap-2 transition-colors disabled:opacity-50"
             >
               <Save size={18} />
               Save All ({completedCount})
@@ -223,8 +223,8 @@ const BulkQuestionInput = () => {
       )}
 
       {/* Metrics Row */}
-      <div className="max-w-6xl mx-auto px-6 mt-8">
-        <div className="grid grid-cols-4 gap-4">
+      <div className="max-w-6xl mx-auto px-4 md:px-6 mt-8">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
           <div className="bg-white rounded-xl p-5 border border-blue-200 shadow-sm flex flex-col items-center justify-center">
             <div className="text-3xl font-bold text-blue-700">{questions.length}</div>
             <div className="text-xs text-slate-500 font-medium uppercase tracking-wider mt-1">Total Questions</div>
@@ -384,14 +384,8 @@ const BulkQuestionInput = () => {
                 </div>
 
                 <div>
-                  <div className="flex items-center justify-between mb-3">
+                  <div className="mb-3">
                     <label className="block text-sm font-medium text-slate-700">Answer Choices (Minimum 2)</label>
-                    <button 
-                      onClick={() => addChoice(q.id)}
-                      className="text-blue-600 hover:text-blue-800 text-sm font-medium flex items-center gap-1"
-                    >
-                      <Plus size={16} /> Add Choice
-                    </button>
                   </div>
                   
                   <div className="space-y-3">
@@ -443,6 +437,14 @@ const BulkQuestionInput = () => {
                         )}
                       </div>
                     ))}
+                  </div>
+                  <div className="mt-4 flex justify-center">
+                    <button 
+                      onClick={() => addChoice(q.id)}
+                      className="text-blue-600 hover:text-blue-800 text-sm font-medium flex items-center gap-1 px-4 py-2 rounded-lg hover:bg-blue-50 transition-colors border border-blue-200 border-dashed w-full justify-center"
+                    >
+                      <Plus size={16} /> Add Choice
+                    </button>
                   </div>
                 </div>
               </div>

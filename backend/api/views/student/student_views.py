@@ -3,10 +3,10 @@ from django.conf import settings
 from django.http import JsonResponse
 from django.db.models import Avg, Count
 from django.views.decorators.csrf import csrf_exempt
-from ..models import Student, result_exam, Online_exam
+from api.models import Student, result_exam, Online_exam
 # Enrollment model may exist; import safely
 try:
-    from ..models import Enrollment
+    from api.models import Enrollment
 except Exception:
     Enrollment = None
 

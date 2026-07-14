@@ -4,7 +4,7 @@ from django.conf import settings
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.utils import timezone
-from ..models import Teacher, Chapter, Question, Choice, QuestionGroup
+from api.models import Teacher, Chapter, Question, Choice, QuestionGroup
 
 @csrf_exempt
 def teacher_questions(request):

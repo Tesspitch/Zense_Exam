@@ -3,7 +3,7 @@ import jwt
 from django.conf import settings
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
-from ..services.join_exam_service import JoinExamService
+from api.services.join_exam_service import JoinExamService
 
 @csrf_exempt
 def join_exam(request):

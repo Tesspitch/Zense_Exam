@@ -2,7 +2,7 @@ import { LayoutDashboard, BookOpen, FileText, Users, Settings } from 'lucide-rea
 import { useNavigate, useLocation } from 'react-router-dom';
 import logo from '../../../assets/zense-bg.png';
 
-const TeacherSidebar = () => {
+const TeacherSidebar = ({ isOpen, closeSidebar }) => {
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -17,7 +17,9 @@ const TeacherSidebar = () => {
   ];
 
   return (
-    <aside className="w-64 bg-white border-r border-slate-200 flex flex-col p-4 hidden md:flex h-screen sticky top-0">
+    <aside className={`w-64 bg-white border-r border-slate-200 flex flex-col p-4 h-screen fixed md:sticky top-0 z-50 transition-transform duration-300 ease-in-out ${
+      isOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'
+    }`}>
       {/* Logo Section */}
       <div className="flex items-center gap-3 mb-10 mt-2 px-2">
         <div className="bg-zense-navy p-1.5 rounded-lg">
@@ -36,7 +38,10 @@ const TeacherSidebar = () => {
           return (
             <button
               key={item.path}
-              onClick={() => navigate(item.path)}
+              onClick={() => {
+                navigate(item.path);
+                if (window.innerWidth < 768 && closeSidebar) closeSidebar();
+              }}
               className={`flex items-center gap-3 w-full px-4 py-3 rounded-xl font-medium text-sm transition-all ${
                 isActive
                   ? 'bg-zense-navy text-white shadow-lg shadow-blue-900/20'

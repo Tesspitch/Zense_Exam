@@ -227,15 +227,15 @@ const QuestionBank = () => {
   return (
     <div className="p-6">
       {/* Header */}
-      <div className="flex items-center justify-between mb-8">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-8">
         <div>
           <h1 className="text-2xl font-bold text-slate-800">Question Bank</h1>
           <p className="text-sm text-slate-500 mt-1">Manage your exam questions</p>
         </div>
-        <div className="flex gap-3">
+        <div className="flex flex-wrap gap-3 w-full sm:w-auto">
           <button
             onClick={() => navigate('/teacher/questions/bulk')}
-            className="bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 px-4 py-2 rounded-xl text-sm font-medium flex items-center gap-2 transition-colors shadow-sm"
+            className="flex-1 sm:flex-none justify-center bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 px-4 py-2 rounded-xl text-sm font-medium flex items-center gap-2 transition-colors shadow-sm"
           >
             <Plus size={18} />
             Bulk Input
@@ -253,7 +253,7 @@ const QuestionBank = () => {
               });
               setIsModalOpen(true);
             }}
-            className="bg-zense-navy hover:bg-blue-900 text-white px-4 py-2 rounded-xl text-sm font-medium flex items-center gap-2 transition-colors shadow-sm"
+            className="flex-1 sm:flex-none justify-center bg-zense-navy hover:bg-blue-900 text-white px-4 py-2 rounded-xl text-sm font-medium flex items-center gap-2 transition-colors shadow-sm"
           >
             <Plus size={18} />
             Add Question
@@ -470,15 +470,8 @@ const QuestionBank = () => {
                   </div>
 
                   <div>
-                    <div className="flex items-center justify-between mb-3">
+                    <div className="mb-3">
                       <label className="block text-sm font-medium text-slate-700">Answer Choices (Minimum 2)</label>
-                      <button
-                        type="button"
-                        onClick={addChoice}
-                        className="text-blue-600 hover:text-blue-800 text-sm font-medium flex items-center gap-1"
-                      >
-                        <Plus size={16} /> Add Choice
-                      </button>
                     </div>
 
                     <div className="space-y-3">
@@ -530,6 +523,15 @@ const QuestionBank = () => {
                           </div>
                         </div>
                       ))}
+                    </div>
+                    <div className="mt-4 flex justify-center">
+                      <button
+                        type="button"
+                        onClick={addChoice}
+                        className="text-blue-600 hover:text-blue-800 text-sm font-medium flex items-center gap-1 px-4 py-2 rounded-lg hover:bg-blue-50 transition-colors border border-blue-200 border-dashed w-full justify-center"
+                      >
+                        <Plus size={16} /> Add Choice
+                      </button>
                     </div>
                   </div>
                 </div>

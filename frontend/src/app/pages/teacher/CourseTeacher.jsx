@@ -125,14 +125,14 @@ const CourseTeacher = () => {
   return (
     <div className="p-6">
       {/* Header */}
-      <div className="flex items-center justify-between mb-8">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-8">
         <div>
           <h1 className="text-2xl font-bold text-slate-800">Courses</h1>
-          <p className="text-sm text-slate-500 mt-1">Manage your course catalog</p>
+          <p className="text-sm text-slate-500 mt-1">Manage courses for your subjects</p>
         </div>
-        <button
+        <button 
           onClick={openCreateModal}
-          className="bg-zense-navy hover:bg-blue-900 text-white px-4 py-2 rounded-xl text-sm font-medium flex items-center gap-2 transition-colors shadow-sm"
+          className="w-full sm:w-auto justify-center bg-zense-navy hover:bg-blue-900 text-white px-4 py-2 rounded-xl text-sm font-medium flex items-center gap-2 transition-colors shadow-sm"
         >
           <Plus size={18} />
           Add Course

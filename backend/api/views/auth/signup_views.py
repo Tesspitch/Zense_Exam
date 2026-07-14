@@ -2,9 +2,9 @@ from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.contrib.auth.hashers import check_password  # สำคัญมากสำหรับการเช็ครหัสผ่านที่ถูก Hash
 import json
-from ..models import Student, Teacher  # นำเข้า Model ที่คุณสร้างไว้
+from api.models import Student, Teacher  # นำเข้า Model ที่คุณสร้างไว้
 from django.contrib.auth.hashers import make_password 
-from ..services.auth_service import generate_jwt_token
+from api.services.auth_service import generate_jwt_token
 
 @csrf_exempt
 def signup_view(request):

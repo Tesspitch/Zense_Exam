@@ -1,10 +1,10 @@
-import { LogOut, User, Bell } from 'lucide-react';
+import { LogOut, User, Bell, Menu } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import axios from 'axios';
 import { jwtDecode } from 'jwt-decode';
 
-const Header = () => {
+const Header = ({ toggleSidebar }) => {
   const navigate = useNavigate();
   const [displayName, setDisplayName] = useState('User');
   const [displayEmail, setDisplayEmail] = useState('Verified User');
@@ -46,10 +46,20 @@ const Header = () => {
   const goToProfile = () => navigate(role === 'Teacher' ? '/teacher/profile' : '/student/profile');
 
   return (
-    <header className="h-16 bg-white border-b border-slate-200 flex items-center justify-end px-8 gap-5 sticky top-0 z-20">
-      <button className="p-2 text-slate-400 hover:bg-slate-50 rounded-full transition-colors">
-        <Bell size={20} />
+    <header className="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-4 md:px-8 sticky top-0 z-20 w-full">
+      {/* Mobile Menu Button */}
+      <button 
+        onClick={toggleSidebar}
+        className="md:hidden p-2 text-slate-400 hover:bg-slate-50 rounded-lg transition-colors"
+      >
+        <Menu size={24} />
       </button>
+
+      {/* Right side icons */}
+      <div className="flex items-center gap-2 md:gap-5 ml-auto">
+        <button className="p-2 text-slate-400 hover:bg-slate-50 rounded-full transition-colors hidden sm:block">
+          <Bell size={20} />
+        </button>
 
       <div
         role="button"
@@ -74,6 +84,7 @@ const Header = () => {
         <LogOut size={18} />
         <span className="hidden sm:inline">Logout</span>
       </button>
+      </div>
 
       {isShowConfirmLogout && (
         <div className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center z-50">
