@@ -52,7 +52,7 @@ class QuestionGroup(models.Model):
         db_table = 'question_group'
         
 class Question(models.Model):
-    qt_id = models.CharField(max_length=50, primary_key=True)
+    qt_id = models.AutoField(primary_key=True)
     chap_id = models.ForeignKey(Chapter, on_delete=models.CASCADE, db_column='chap_id')
     qt_detail = models.TextField()
     qt_image_url = models.CharField(max_length=500, null=True, blank=True)

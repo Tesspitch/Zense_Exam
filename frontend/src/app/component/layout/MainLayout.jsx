@@ -23,7 +23,7 @@ const MainLayout = ({ children }) => {
   const closeSidebar = () => setIsSidebarOpen(false);
 
   return (
-    <div className="flex min-h-screen bg-slate-50 font-sans text-slate-800 relative">
+    <div className="flex min-h-screen bg-slate-50 dark:bg-slate-950 font-sans text-slate-800 dark:text-slate-200 relative transition-colors">
       {/* Mobile Overlay */}
       {isSidebarOpen && (
         <div 

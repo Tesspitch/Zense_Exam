@@ -10,6 +10,8 @@
   --radius-zense: 2.5rem;
 }
 
+@custom-variant dark (&:is(.dark *));
+
 @layer components {
   /* สร้าง Class แยกสำหรับการคำนวณ Layout ที่ซับซ้อน */
   .input-field {

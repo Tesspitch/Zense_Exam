@@ -3,7 +3,7 @@ from django.conf import settings
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.db.models import Avg, Sum
-from api.models import Teacher, Subject, Exam_set, Question, Online_exam, detail_online_exam, result_exam
+from api.models import Teacher, Subject, Exam_set, Question, Online_exam, detail_online_exam, result_exam, Chapter
 
 
 @csrf_exempt
@@ -34,7 +34,7 @@ def get_teacher_dashboard(request):
 			return JsonResponse({'error': 'Teacher not found'}, status=404)
 
 		totalsubject = Subject.objects.filter(teacher_id=teacher).count()
-		totalcourse = Exam_set.objects.filter(teacher_id=teacher).count()
+		totalcourse = Chapter.objects.filter(sj_id__teacher_id=teacher).count()
 		total_questions = Question.objects.filter(chap_id__sj_id__teacher_id=teacher).count()
 		active_exams = Online_exam.objects.filter(teacher_id=teacher, online_exam_is_active=True).count()
 

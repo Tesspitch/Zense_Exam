@@ -90,18 +90,26 @@ def teacher_questions(request):
                     group = QuestionGroup(teacher_id=teacher, shared_text=shared_text, shared_image_url=shared_image_url)
                     group.save()
 
-                # Generate a unique ID if not provided (the UI doesn't have an input for qt_id, so we should generate it)
-                import uuid
-                qt_id = body.get('qt_id') or str(uuid.uuid4())[:50]
-
-                new_question = Question(
-                    qt_id=qt_id,
-                    chap_id=chapter,
-                    qt_detail=qt_detail,
-                    qt_image_url=qt_image_url,
-                    qt_diff_lv=qt_diff_lv,
-                    group_id=group
-                )
+                # We don't generate qt_id because it's an AutoField in the database
+                qt_id_from_client = body.get('qt_id')
+                
+                if qt_id_from_client:
+                    new_question = Question(
+                        qt_id=qt_id_from_client,
+                        chap_id=chapter,
+                        qt_detail=qt_detail,
+                        qt_image_url=qt_image_url,
+                        qt_diff_lv=qt_diff_lv,
+                        group_id=group
+                    )
+                else:
+                    new_question = Question(
+                        chap_id=chapter,
+                        qt_detail=qt_detail,
+                        qt_image_url=qt_image_url,
+                        qt_diff_lv=qt_diff_lv,
+                        group_id=group
+                    )
                 new_question.save()
 
                 for choice in choices:
@@ -194,9 +202,8 @@ def teacher_questions_bulk(request):
                             group = QuestionGroup(teacher_id=teacher, shared_text=shared_text, shared_image_url=shared_image_url)
                             group.save()
 
-                    qt_id = str(uuid.uuid4())[:50]
+                    # We don't generate qt_id because it's an AutoField in the database
                     new_question = Question(
-                        qt_id=qt_id,
                         chap_id=chapter,
                         qt_detail=qt_detail,
                         qt_image_url=q_data.get('qt_image_url'),
@@ -266,7 +273,13 @@ def ocr_image_to_latex(request):
             
         genai.configure(api_key=api_key)
         
-        model = genai.GenerativeModel('gemini-3.5-flash')
+        models_to_try = [
+            'gemini-3.1-flash-lite', 
+            'gemini-flash-latest', 
+            'gemini-3.1-flash-image', 
+            'gemini-2.5-pro'
+        ]
+        
         img = Image.open(image_file)
         
         if mode == 'text':
@@ -274,8 +287,24 @@ def ocr_image_to_latex(request):
         else:
             prompt = "Extract all mathematical equations and text from this image and return it formatted with LaTeX. Wrap block equations in $$ $$ and inline equations in $ $. Only return the extracted text and LaTeX, with no markdown code blocks around the entire output."
         
-        response = model.generate_content([prompt, img])
-        result_text = response.text.strip()
+        last_error = None
+        result_text = None
+        
+        for model_name in models_to_try:
+            try:
+                model = genai.GenerativeModel(model_name)
+                response = model.generate_content([prompt, img])
+                result_text = response.text.strip()
+                break # Success, exit the fallback loop
+            except Exception as e:
+                last_error = str(e)
+                continue
+                
+        if result_text is None:
+            # All models failed
+            return JsonResponse({
+                'error': 'ระบบ AI ทุกตัวถึงขีดจำกัดโควต้าแล้วในขณะนี้ กรุณาลองใหม่อีกครั้งในภายหลัง (Rate limit exceeded for all models)'
+            }, status=429)
         
         if result_text.startswith('```') and result_text.endswith('```'):
             lines = result_text.split('\n')

@@ -19,8 +19,8 @@ urlpatterns = [
         path('teacher/courses/', course_views.teacher_courses, name='teacher_courses'),
         path('teacher/courses/<str:chap_id>/', course_views.teacher_course_detail, name='teacher_course_detail'),
         path('teacher/questions/', question_views.teacher_questions, name='teacher_questions'),
-        path('teacher/questions/<str:qt_id>/', question_views.teacher_question_detail, name='teacher_question_detail'),
         path('teacher/questions/bulk/', question_views.teacher_questions_bulk, name='teacher_questions_bulk'),
+        path('teacher/questions/<str:qt_id>/', question_views.teacher_question_detail, name='teacher_question_detail'),
         path('teacher/math-ocr/', question_views.ocr_image_to_latex, name='ocr_image_to_latex'),
         path('teacher/profile/', profile_views.teacher_profile_api),
         

@@ -1,8 +1,10 @@
 import { useState } from 'react';
 import axios from 'axios';
 import { X, Save, Loader2 } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 const EditProfileModal = ({ profile, userRole, onClose, onSuccess }) => {
+  const { t } = useTranslation();
   const [formData, setFormData] = useState({
     first_name: profile.first_name,
     last_name: profile.last_name,
@@ -35,28 +37,28 @@ const EditProfileModal = ({ profile, userRole, onClose, onSuccess }) => {
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onClick={onClose}></div>
-      <div className="relative bg-white w-full max-w-lg rounded-[32px] shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
+      <div className="relative bg-white dark:bg-slate-800 w-full max-w-lg rounded-[32px] shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200 border border-slate-100 dark:border-slate-700 transition-colors">
         <div className="p-8">
           <div className="flex justify-between items-center mb-8">
-            <h3 className="text-2xl font-bold text-slate-800">Edit Profile</h3>
-            <button onClick={onClose} className="p-2 hover:bg-slate-100 rounded-full text-slate-400"><X size={20} /></button>
+            <h3 className="text-2xl font-bold text-slate-800 dark:text-white">Edit Profile</h3>
+            <button onClick={onClose} className="p-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-full text-slate-400 dark:text-slate-500 transition-colors"><X size={20} /></button>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-6">
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <label className="text-sm font-bold text-slate-500 pl-1">First Name</label>
+                <label className="text-sm font-bold text-slate-500 dark:text-slate-400 pl-1">First Name</label>
                 <input 
-                  className="w-full px-5 py-3.5 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-2 focus:ring-zense-navy outline-none"
+                  className="w-full px-5 py-3.5 bg-slate-50 dark:bg-slate-900 border border-slate-100 dark:border-slate-700 rounded-2xl focus:ring-2 focus:ring-zense-navy dark:focus:ring-blue-500 outline-none text-slate-800 dark:text-white transition-colors"
                   value={formData.first_name}
                   onChange={(e) => setFormData({...formData, first_name: e.target.value})}
                   required
                 />
               </div>
               <div className="space-y-2">
-                <label className="text-sm font-bold text-slate-500 pl-1">Last Name</label>
+                <label className="text-sm font-bold text-slate-500 dark:text-slate-400 pl-1">Last Name</label>
                 <input 
-                  className="w-full px-5 py-3.5 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-2 focus:ring-zense-navy outline-none"
+                  className="w-full px-5 py-3.5 bg-slate-50 dark:bg-slate-900 border border-slate-100 dark:border-slate-700 rounded-2xl focus:ring-2 focus:ring-zense-navy dark:focus:ring-blue-500 outline-none text-slate-800 dark:text-white transition-colors"
                   value={formData.last_name}
                   onChange={(e) => setFormData({...formData, last_name: e.target.value})}
                   required
@@ -64,10 +66,10 @@ const EditProfileModal = ({ profile, userRole, onClose, onSuccess }) => {
               </div>
             </div>
             <div className="space-y-2">
-              <label className="text-sm font-bold text-slate-500 pl-1">Email Address</label>
+              <label className="text-sm font-bold text-slate-500 dark:text-slate-400 pl-1">Email Address</label>
               <input 
                 type="email"
-                className="w-full px-5 py-3.5 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-2 focus:ring-zense-navy outline-none"
+                className="w-full px-5 py-3.5 bg-slate-50 dark:bg-slate-900 border border-slate-100 dark:border-slate-700 rounded-2xl focus:ring-2 focus:ring-zense-navy dark:focus:ring-blue-500 outline-none text-slate-800 dark:text-white transition-colors"
                 value={formData.email}
                 onChange={(e) => setFormData({...formData, email: e.target.value})}
                 required
@@ -77,7 +79,7 @@ const EditProfileModal = ({ profile, userRole, onClose, onSuccess }) => {
             <button 
               type="submit" 
               disabled={loading}
-              className="w-full py-4 bg-zense-navy text-white rounded-2xl font-bold hover:bg-slate-800 transition-all flex items-center justify-center gap-2 shadow-lg shadow-blue-900/20"
+              className="w-full py-4 bg-zense-navy dark:bg-blue-600 text-white rounded-2xl font-bold hover:bg-slate-800 dark:hover:bg-blue-700 transition-all flex items-center justify-center gap-2 shadow-lg shadow-blue-900/20 dark:shadow-none"
             >
               {loading ? <Loader2 className="animate-spin" /> : <><Save size={18} /> บันทึกข้อมูล</>}
             </button>

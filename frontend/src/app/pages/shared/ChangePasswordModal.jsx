@@ -3,8 +3,10 @@ import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import { X, Lock, Eye, EyeOff, Loader2, ShieldAlert } from 'lucide-react';
 import AlertModal from '../../component/alertModal'; // พาธถูกต้องตามโครงสร้างโฟลเดอร์จริงของคุณ
+import { useTranslation } from 'react-i18next';
 
 const ChangePasswordModal = ({ onClose }) => {
+  const { t } = useTranslation();
   const [formData, setFormData] = useState({
     old_password: '',
     new_password: '',
@@ -67,18 +69,18 @@ const ChangePasswordModal = ({ onClose }) => {
       <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onClick={onClose}></div>
       
       {/* Main Modal Card */}
-      <div className="relative bg-white w-full max-w-md rounded-[32px] shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
+      <div className="relative bg-white dark:bg-slate-800 w-full max-w-md rounded-[32px] shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200 border border-slate-100 dark:border-slate-700 transition-colors">
         <div className="p-8">
           <div className="flex justify-between items-center mb-6">
-            <h3 className="text-2xl font-bold text-slate-800">Change Password</h3>
-            <button onClick={onClose} className="p-2 hover:bg-slate-50 rounded-full text-slate-400 transition-colors">
+            <h3 className="text-2xl font-bold text-slate-800 dark:text-white">Change Password</h3>
+            <button onClick={onClose} className="p-2 hover:bg-slate-50 dark:hover:bg-slate-700 rounded-full text-slate-400 dark:text-slate-500 transition-colors">
               <X size={20} />
             </button>
           </div>
 
           {/* Inline Error Alert (แสดงในฟอร์มด้วยเพื่อให้รับรู้จุดผิดพลาดได้ง่าย) */}
           {error && (
-            <div className="mb-6 p-4 bg-red-50 border border-red-100 rounded-2xl flex items-center gap-3 text-red-600 text-sm animate-shake">
+            <div className="mb-6 p-4 bg-red-50 dark:bg-red-900/20 border border-red-100 dark:border-red-900/50 rounded-2xl flex items-center gap-3 text-red-600 dark:text-red-400 text-sm animate-shake">
               <ShieldAlert size={18} className="shrink-0" />
               <span>{error}</span>
             </div>
@@ -87,11 +89,11 @@ const ChangePasswordModal = ({ onClose }) => {
           <form onSubmit={handleSubmit} className="space-y-5">
             {/* Current Password */}
             <div className="space-y-2">
-              <label className="text-sm font-bold text-slate-500 pl-1">Current Password</label>
+              <label className="text-sm font-bold text-slate-500 dark:text-slate-400 pl-1">Current Password</label>
               <div className="relative">
                 <input 
                   type={showPassword ? "text" : "password"}
-                  className="w-full px-5 py-3.5 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-2 focus:ring-zense-navy outline-none transition-all text-slate-700"
+                  className="w-full px-5 py-3.5 bg-slate-50 dark:bg-slate-900 border border-slate-100 dark:border-slate-700 rounded-2xl focus:ring-2 focus:ring-zense-navy dark:focus:ring-blue-500 outline-none transition-all text-slate-700 dark:text-white"
                   placeholder="รหัสผ่านปัจจุบัน"
                   value={formData.old_password}
                   onChange={(e) => setFormData({...formData, old_password: e.target.value})}
@@ -100,21 +102,21 @@ const ChangePasswordModal = ({ onClose }) => {
                 <button 
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors"
+                  className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300 transition-colors"
                 >
                   {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                 </button>
               </div>
             </div>
 
-            <hr className="border-slate-100 my-2" />
+            <hr className="border-slate-100 dark:border-slate-700 my-2" />
 
             {/* New Password */}
             <div className="space-y-2">
-              <label className="text-sm font-bold text-slate-500 pl-1">New Password</label>
+              <label className="text-sm font-bold text-slate-500 dark:text-slate-400 pl-1">New Password</label>
               <input 
                 type={showPassword ? "text" : "password"}
-                className="w-full px-5 py-3.5 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-2 focus:ring-zense-navy outline-none transition-all text-slate-700"
+                className="w-full px-5 py-3.5 bg-slate-50 dark:bg-slate-900 border border-slate-100 dark:border-slate-700 rounded-2xl focus:ring-2 focus:ring-zense-navy dark:focus:ring-blue-500 outline-none transition-all text-slate-700 dark:text-white"
                 placeholder="รหัสผ่านใหม่"
                 value={formData.new_password}
                 onChange={(e) => setFormData({...formData, new_password: e.target.value})}
@@ -124,10 +126,10 @@ const ChangePasswordModal = ({ onClose }) => {
 
             {/* Confirm New Password */}
             <div className="space-y-2">
-              <label className="text-sm font-bold text-slate-500 pl-1">Confirm New Password</label>
+              <label className="text-sm font-bold text-slate-500 dark:text-slate-400 pl-1">Confirm New Password</label>
               <input 
                 type={showPassword ? "text" : "password"}
-                className="w-full px-5 py-3.5 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-2 focus:ring-zense-navy outline-none transition-all text-slate-700"
+                className="w-full px-5 py-3.5 bg-slate-50 dark:bg-slate-900 border border-slate-100 dark:border-slate-700 rounded-2xl focus:ring-2 focus:ring-zense-navy dark:focus:ring-blue-500 outline-none transition-all text-slate-700 dark:text-white"
                 placeholder="ยืนยันรหัสผ่านใหม่"
                 value={formData.confirm_password}
                 onChange={(e) => setFormData({...formData, confirm_password: e.target.value})}
@@ -139,7 +141,7 @@ const ChangePasswordModal = ({ onClose }) => {
             <button 
               type="submit" 
               disabled={loading}
-              className="w-full mt-4 py-4 bg-zense-navy text-white rounded-2xl font-bold hover:bg-slate-800 transition-all flex items-center justify-center gap-2 shadow-lg shadow-blue-900/20 active:scale-95 disabled:bg-slate-300 disabled:cursor-not-allowed"
+              className="w-full mt-4 py-4 bg-zense-navy dark:bg-blue-600 text-white rounded-2xl font-bold hover:bg-slate-800 dark:hover:bg-blue-700 transition-all flex items-center justify-center gap-2 shadow-lg shadow-blue-900/20 dark:shadow-none active:scale-95 disabled:bg-slate-300 dark:disabled:bg-slate-700 disabled:cursor-not-allowed"
             >
               {loading ? <Loader2 className="animate-spin" /> : <><Lock size={18} /> Update Password</>}
             </button>
