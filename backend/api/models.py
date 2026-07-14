@@ -42,11 +42,22 @@ class Chapter(models.Model):
     class Meta:
         db_table = 'chapter'
         
+class QuestionGroup(models.Model):
+    group_id = models.AutoField(primary_key=True)
+    teacher_id = models.ForeignKey(Teacher, on_delete=models.CASCADE, db_column='teacher_id')
+    shared_text = models.TextField(null=True, blank=True)
+    shared_image_url = models.CharField(max_length=500, null=True, blank=True)
+    
+    class Meta:
+        db_table = 'question_group'
+        
 class Question(models.Model):
     qt_id = models.CharField(max_length=50, primary_key=True)
     chap_id = models.ForeignKey(Chapter, on_delete=models.CASCADE, db_column='chap_id')
     qt_detail = models.TextField()
+    qt_image_url = models.CharField(max_length=500, null=True, blank=True)
     qt_diff_lv = models.CharField(max_length=10)
+    group_id = models.ForeignKey(QuestionGroup, on_delete=models.SET_NULL, db_column='group_id', null=True, blank=True)
     
     class Meta:
         db_table = 'question'
@@ -54,7 +65,8 @@ class Question(models.Model):
 class Choice(models.Model):
     choice_id = models.IntegerField(primary_key=True)
     qt_id = models.ForeignKey(Question, on_delete=models.CASCADE, db_column='qt_id')
-    choice_detail = models.CharField(max_length=200)
+    choice_detail = models.TextField()
+    choice_image_url = models.CharField(max_length=500, null=True, blank=True)
     choice_correct = models.BooleanField()
     
     class Meta:

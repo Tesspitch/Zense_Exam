@@ -3,6 +3,10 @@ import LoginPage from './pages/LoginPage.jsx';
 import SignupPage from './pages/SignupPage.jsx';
 import DashboardStudent from './pages/student/Dashboard.jsx';
 import DashboardTeacher from './pages/teacher/DashboardTeacher.jsx';
+import SubjectTeacher from './pages/teacher/SubjectTeacher.jsx';
+import CourseTeacher from './pages/teacher/CourseTeacher.jsx';
+import QuestionBank from './pages/teacher/QuestionBank.jsx';
+import BulkQuestionInput from './pages/teacher/BulkQuestionInput.jsx';
 import JoinExam from './pages/student/joinExam.jsx';
 import ProtectedRoute from './component/ProtectedRoute.jsx'; // นำเข้าป้อมยาม
 import MainLayout from './component/layout/MainLayout.jsx';
@@ -46,6 +50,50 @@ const AppRoutes = () => {
           <ProtectedRoute allowedRole="Teacher">
             <MainLayout>
               <DashboardTeacher />
+            </MainLayout>
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/teacher/subjects"
+        element={
+          <ProtectedRoute allowedRole="Teacher">
+            <MainLayout>
+              <SubjectTeacher />
+            </MainLayout>
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/teacher/courses"
+        element={
+          <ProtectedRoute allowedRole="Teacher">
+            <MainLayout>
+              <CourseTeacher />
+            </MainLayout>
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/teacher/questions"
+        element={
+          <ProtectedRoute allowedRole="Teacher">
+            <MainLayout>
+              <QuestionBank />
+            </MainLayout>
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/teacher/questions/bulk"
+        element={
+          <ProtectedRoute allowedRole="Teacher">
+            <MainLayout>
+              <BulkQuestionInput />
             </MainLayout>
           </ProtectedRoute>
         }

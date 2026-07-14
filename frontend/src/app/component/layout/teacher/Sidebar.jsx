@@ -8,8 +8,10 @@ const TeacherSidebar = () => {
 
   const menuItems = [
     { name: 'Dashboard', icon: <LayoutDashboard size={20} />, path: '/teacher/dashboard' },
-    { name: 'Exams', icon: <BookOpen size={20} />, path: '/teacher/exams' },
+    { name: 'Subjects', icon: <BookOpen size={20} />, path: '/teacher/subjects' },
+    { name: 'Courses', icon: <BookOpen size={20} />, path: '/teacher/courses' },
     { name: 'Question Bank', icon: <FileText size={20} />, path: '/teacher/questions' },
+    { name: 'Exams', icon: <BookOpen size={20} />, path: '/teacher/exams' },
     { name: 'Students', icon: <Users size={20} />, path: '/teacher/students' },
     { name: 'Profile', icon: <Settings size={20} />, path: '/teacher/profile' },
   ];
