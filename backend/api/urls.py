@@ -1,7 +1,7 @@
 from django.urls import path
 from api.views.auth import login_views, signup_views
-from api.views.student import student_views, join_exam_views
-from api.views.teacher import teacher_views, subject_views, course_views, question_views
+from api.views.student import student_views, join_exam_views, student_exam_views
+from api.views.teacher import teacher_views, subject_views, course_views, question_views, exam_views
 from api.views.common import profile_views, upload_views
 
 urlpatterns = [
@@ -11,6 +11,8 @@ urlpatterns = [
         path('student/dashboard/', student_views.get_student_dashboard, name='student_dashboard'),
         path('join_exam/', join_exam_views.join_exam, name='join_exam'),
         path('student/join-exam/', join_exam_views.join_exam, name='join_exam_student_alias'),
+        path('student/exams/<str:exam_id>/take/', student_exam_views.take_exam, name='take_exam'),
+        path('student/exams/<str:exam_id>/submit/', student_exam_views.submit_exam, name='submit_exam'),
         path('student/profile/', profile_views.student_profile_api), 
         
         path('teacher/dashboard/', teacher_views.get_teacher_dashboard, name='teacher_dashboard'),
@@ -18,6 +20,10 @@ urlpatterns = [
         path('teacher/subjects/<str:sj_id>/', subject_views.teacher_subject_detail, name='teacher_subject_detail'),
         path('teacher/courses/', course_views.teacher_courses, name='teacher_courses'),
         path('teacher/courses/<str:chap_id>/', course_views.teacher_course_detail, name='teacher_course_detail'),
+        path('teacher/exams/', exam_views.teacher_exams, name='teacher_exams'),
+        path('teacher/exams/question-counts/', exam_views.question_counts, name='question_counts'),
+        path('teacher/exams/<str:exam_id>/', exam_views.teacher_exam_detail, name='teacher_exam_detail'),
+        path('teacher/exams/<str:exam_id>/results/', exam_views.teacher_exam_results, name='teacher_exam_results'),
         path('teacher/questions/', question_views.teacher_questions, name='teacher_questions'),
         path('teacher/questions/bulk/', question_views.teacher_questions_bulk, name='teacher_questions_bulk'),
         path('teacher/questions/<str:qt_id>/', question_views.teacher_question_detail, name='teacher_question_detail'),

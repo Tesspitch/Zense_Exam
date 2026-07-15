@@ -7,7 +7,9 @@ import SubjectTeacher from './pages/teacher/SubjectTeacher.jsx';
 import CourseTeacher from './pages/teacher/CourseTeacher.jsx';
 import QuestionBank from './pages/teacher/QuestionBank.jsx';
 import BulkQuestionInput from './pages/teacher/BulkQuestionInput.jsx';
+import ExamTeacher from './pages/teacher/ExamTeacher.jsx';
 import JoinExam from './pages/student/joinExam.jsx';
+import ExamRoom from './pages/student/ExamRoom.jsx';
 import ProtectedRoute from './component/ProtectedRoute.jsx'; // นำเข้าป้อมยาม
 import MainLayout from './component/layout/MainLayout.jsx';
 import Profile from './pages/shared/Profile.jsx';
@@ -27,6 +29,15 @@ const AppRoutes = () => {
               <JoinExam />
             </MainLayout>
 
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/exam-room/:examId"
+        element={
+          <ProtectedRoute allowedRole="Student">
+            <ExamRoom />
           </ProtectedRoute>
         }
       />
@@ -98,6 +109,18 @@ const AppRoutes = () => {
           </ProtectedRoute>
         }
       />
+
+      <Route
+        path="/teacher/exams"
+        element={
+          <ProtectedRoute allowedRole="Teacher">
+            <MainLayout>
+              <ExamTeacher />
+            </MainLayout>
+          </ProtectedRoute>
+        }
+      />
+
 
       <Route path="/student/profile" element={
         <ProtectedRoute allowedRole="Student">

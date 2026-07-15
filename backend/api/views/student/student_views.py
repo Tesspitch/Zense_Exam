@@ -3,7 +3,7 @@ from django.conf import settings
 from django.http import JsonResponse
 from django.db.models import Avg, Count
 from django.views.decorators.csrf import csrf_exempt
-from api.models import Student, result_exam, Online_exam
+from api.models import Student, result_exam, Online_exam, detail_exam_set
 # Enrollment model may exist; import safely
 try:
     from api.models import Enrollment
@@ -36,9 +36,14 @@ def get_student_dashboard(request):
             # 4. คำนวณสถิติต่างๆ
             completed_exams_count = results.count()
             
-            # หาค่าเฉลี่ยคะแนนสอบทั้งหมด
-            avg_score_data = results.aggregate(Avg('result_score'))
-            average_score = round(avg_score_data['result_score__avg'], 1) if avg_score_data['result_score__avg'] else 0
+            # หาค่าเฉลี่ยเปอร์เซ็นต์ของการสอบทั้งหมด
+            total_percentage_sum = 0
+            for res in results:
+                total_qs = detail_exam_set.objects.filter(exam_set_id=res.online_exam_id.exam_set_id).count() if res.online_exam_id.exam_set_id else 0
+                if total_qs > 0:
+                    total_percentage_sum += (float(res.result_score) / total_qs * 100)
+                    
+            average_score = round(total_percentage_sum / completed_exams_count, 1) if completed_exams_count > 0 else 0
 
             # Determine enrolled courses based on Enrollment model (if present)
             if Enrollment:
@@ -75,10 +80,14 @@ def get_student_dashboard(request):
             # 5. จัดเตรียมข้อมูลคะแนนรายวิชา (Recent Scores) เอาแค่ 3-5 รายการล่าสุด
             recent_scores = []
             for res in results[:5]: 
+                # หาจำนวนข้อทั้งหมดจาก exam_set_id
+                total_qs = detail_exam_set.objects.filter(exam_set_id=res.online_exam_id.exam_set_id).count() if res.online_exam_id.exam_set_id else 0
+                percentage = round((float(res.result_score) / total_qs * 100), 2) if total_qs > 0 else 0
+                
                 recent_scores.append({
-                    #เข้าถึงตารางแม่ด้วยชื่อ online_exam_id ตามด้วยฟิลด์เป้าหมาย
                     'exam_name': res.online_exam_id.online_exam_name,
                     'score': float(res.result_score), 
+                    'percentage': percentage,
                     'date': res.time_exam.strftime("%Y-%m-%d"),
                 })
 

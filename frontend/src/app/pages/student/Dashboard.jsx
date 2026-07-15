@@ -134,10 +134,10 @@ const StudentDashboard = () => {
                   </div>
                   <div className="text-right min-w-[60px]">
                     <span className={`text-2xl font-black ${
-                      score.score >= 80 ? 'text-emerald-500' : 
-                      score.score >= 50 ? 'text-amber-500' : 'text-red-500'
+                      (score.percentage ?? score.score) >= 80 ? 'text-emerald-500' : 
+                      (score.percentage ?? score.score) >= 50 ? 'text-amber-500' : 'text-red-500'
                     }`}>
-                      {score.score ?? '-'}%
+                      {score.percentage ?? score.score ?? '-'}%
                     </span>
                     <p className="text-[10px] text-slate-400 dark:text-slate-500 font-medium uppercase tracking-wider">Score</p>
                   </div>

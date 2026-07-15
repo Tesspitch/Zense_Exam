@@ -5,6 +5,7 @@ import axios from 'axios';
 import { jwtDecode } from 'jwt-decode';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../../context/ThemeContext';
+import { createPortal } from 'react-dom';
 
 const Header = ({ toggleSidebar }) => {
   const navigate = useNavigate();
@@ -110,8 +111,8 @@ const Header = ({ toggleSidebar }) => {
       </button>
       </div>
 
-      {isShowConfirmLogout && (
-        <div className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center z-50">
+      {isShowConfirmLogout && createPortal(
+        <div className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center z-[100]">
           <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-lg max-w-sm mx-4 border border-slate-100 dark:border-slate-800 overflow-hidden w-full">
             <div className="px-6 py-4 border-b border-slate-100 dark:border-slate-800">
               <h3 className="text-lg font-bold text-slate-800 dark:text-white">{t('header.logoutConfirmTitle')}</h3>
@@ -130,7 +131,8 @@ const Header = ({ toggleSidebar }) => {
               <button onClick={handleConfirmLogout} className="px-5 py-2 text-white bg-red-500 rounded-lg">{t('header.logout', 'Logout')}</button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </header>
   );
