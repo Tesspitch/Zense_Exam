@@ -31,8 +31,19 @@ const PaperPreviewModal = ({
   const handleExportDocx = () => {
     if (!printRef.current) return;
     
-    // We construct a full HTML document string including styles for the export
-    const contentHtml = printRef.current.innerHTML;
+    // Clone the print reference to manipulate it without affecting the UI
+    const clone = printRef.current.cloneNode(true);
+    
+    // Remove MathML as it causes corrupted/blank DOCX files in MS Word
+    const mathmlElements = clone.querySelectorAll('.katex-mathml');
+    mathmlElements.forEach(el => el.remove());
+
+    // Remove SVGs as html-docx-js doesn't support them well
+    const svgs = clone.querySelectorAll('svg');
+    svgs.forEach(el => el.remove());
+
+    // Construct a full HTML document string including styles for the export
+    const contentHtml = clone.innerHTML;
     
     const fullHtml = `
       <!DOCTYPE html>
@@ -60,17 +71,22 @@ const PaperPreviewModal = ({
       </html>
     `;
 
-    const converted = window.htmlDocx.asBlob(fullHtml, { orientation: 'portrait' });
-    
-    // Trigger download
-    const url = URL.createObjectURL(converted);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `${examData.name}.docx`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
+    try {
+      const converted = window.htmlDocx.asBlob(fullHtml, { orientation: 'portrait', margins: { top: 1440, right: 1440, bottom: 1440, left: 1440 } });
+      
+      // Trigger download
+      const url = URL.createObjectURL(converted);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `${examData.name}.docx`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error('DOCX Export failed:', err);
+      alert('Failed to export DOCX. Please try PDF export instead.');
+    }
   };
 
   const handleExport = () => {
@@ -82,11 +98,11 @@ const PaperPreviewModal = ({
   };
 
   return (
-    <div className="fixed inset-0 z-[200] flex items-center justify-center bg-slate-900/80 backdrop-blur-sm p-2 sm:p-4 print-wrapper hide-on-print">
-      <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl w-full max-w-5xl flex flex-col h-[95vh] border border-slate-200 dark:border-slate-700">
+    <div className="fixed inset-0 z-[200] flex items-center justify-center bg-slate-900/80 backdrop-blur-sm p-2 sm:p-4 print-wrapper">
+      <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl w-full max-w-5xl flex flex-col h-[95vh] border border-slate-200 dark:border-slate-700 print-modal-inner">
         
         {/* Header Controls */}
-        <div className="flex items-center justify-between p-4 border-b border-slate-200 dark:border-slate-800 shrink-0 bg-slate-50 dark:bg-slate-800 rounded-t-2xl">
+        <div className="flex items-center justify-between p-4 border-b border-slate-200 dark:border-slate-800 shrink-0 bg-slate-50 dark:bg-slate-800 rounded-t-2xl hide-on-print">
           <div className="flex items-center gap-4">
             <h2 className="text-xl font-bold text-slate-800 dark:text-white">
               {t('exam.paperPreview', 'Paper Preview')}
