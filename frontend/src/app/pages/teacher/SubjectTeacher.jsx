@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import axios from 'axios';
+import api from '../../../utils/api';
 import { Book, Edit3, Trash2, Plus, X, User, Calendar, BookOpen } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
@@ -27,7 +28,7 @@ const SubjectTeacher = () => {
     
     try {
       const token = localStorage.getItem('token');
-      await axios.delete(`http://localhost:8000/api/teacher/subjects/${sj_id}/`, {
+      await api.delete(`/api/teacher/subjects/${sj_id}/`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       fetchSubjects();
@@ -59,7 +60,7 @@ const SubjectTeacher = () => {
     try {
       const token = localStorage.getItem('token');
       if (!token) throw new Error('No auth token');
-      const res = await axios.get('http://localhost:8000/api/teacher/subjects/', {
+      const res = await api.get('/api/teacher/subjects/', {
         headers: { Authorization: `Bearer ${token}` }
       });
       setSubjects(res.data.subjects || []);
@@ -89,14 +90,14 @@ const SubjectTeacher = () => {
       const token = localStorage.getItem('token');
       if (!token) throw new Error('No auth token');
       if (isEditing) {
-        await axios.put(`http://localhost:8000/api/teacher/subjects/${formData.sj_id}/`, formData, {
+        await api.put(`/api/teacher/subjects/${formData.sj_id}/`, formData, {
           headers: { 
             Authorization: `Bearer ${token}`,
             'Content-Type': 'application/json'
           }
         });
       } else {
-        await axios.post('http://localhost:8000/api/teacher/subjects/', formData, {
+        await api.post('/api/teacher/subjects/', formData, {
           headers: { 
             Authorization: `Bearer ${token}`,
             'Content-Type': 'application/json'

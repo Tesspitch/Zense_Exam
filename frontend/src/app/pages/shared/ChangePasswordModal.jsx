@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import axios from 'axios';
+import api from '../../../utils/api';
 import { useNavigate } from 'react-router-dom';
 import { X, Lock, Eye, EyeOff, Loader2, ShieldAlert } from 'lucide-react';
 import AlertModal from '../../component/alertModal'; // พาธถูกต้องตามโครงสร้างโฟลเดอร์จริงของคุณ
@@ -36,8 +37,7 @@ const ChangePasswordModal = ({ onClose }) => {
     setLoading(true);
     try {
       const token = localStorage.getItem('token');
-      await axios.post(
-        'http://localhost:8000/api/profile/change-password/', 
+      await api.post('/api/profile/change-password/', 
         {
           old_password: formData.old_password,
           new_password: formData.new_password

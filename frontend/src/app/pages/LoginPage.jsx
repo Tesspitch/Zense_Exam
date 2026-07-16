@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import axios from 'axios';
+import api from '../../utils/api';
 import { GraduationCap, UserCheck } from 'lucide-react';
 // เพิ่ม useNavigate เข้ามาเพื่อใช้เปลี่ยนหน้า
 import { Link, useNavigate } from 'react-router-dom'; 
@@ -21,7 +22,7 @@ const LoginPage = () => {
     e.preventDefault();
     setError('');
     try {
-      const response = await axios.post('http://localhost:8000/api/login/', {
+      const response = await api.post('/api/login/', {
         email, password, role
       });
       

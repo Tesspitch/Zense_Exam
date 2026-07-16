@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react';
 import axios from 'axios';
+import api from '../../../utils/api';
 import { Search, Edit3, Trash2, Plus, X, Check, Image as ImageIcon } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import 'katex/dist/katex.min.css';
-import { renderTextWithMath, ImageUploadField } from '../../component/QuestionComponents';
+import { renderTextWithMath, ImageUploadField, RichTextEditor } from '../../component/QuestionComponents';
 
 const QuestionBank = () => {
   const { t } = useTranslation();
@@ -56,7 +57,7 @@ const QuestionBank = () => {
 
     try {
       const token = localStorage.getItem('token');
-      const res = await axios.post('http://localhost:8000/api/teacher/math-ocr/', formDataObj, {
+      const res = await api.post('/api/teacher/math-ocr/', formDataObj, {
         headers: {
           Authorization: `Bearer ${token}`,
           'Content-Type': 'multipart/form-data'
@@ -85,8 +86,8 @@ const QuestionBank = () => {
       if (!token) throw new Error('No auth token');
 
       const [questionsRes, coursesRes] = await Promise.all([
-        axios.get('http://localhost:8000/api/teacher/questions/', { headers: { Authorization: `Bearer ${token}` } }),
-        axios.get('http://localhost:8000/api/teacher/courses/', { headers: { Authorization: `Bearer ${token}` } })
+        api.get(`/api/teacher/questions/`, { headers: { Authorization: `Bearer ${token}` } }),
+        api.get(`/api/teacher/courses/`, { headers: { Authorization: `Bearer ${token}` } })
       ]);
 
       setQuestions(questionsRes.data.questions || []);
@@ -113,13 +114,13 @@ const QuestionBank = () => {
 
   const handleChoiceChange = (index, field, value) => {
     const updatedChoices = [...formData.choices];
-    
+
     if (field === 'choice_correct' && value === true) {
       updatedChoices.forEach((choice, i) => {
         if (i !== index) choice.choice_correct = false;
       });
     }
-    
+
     updatedChoices[index][field] = value;
 
     setFormData({ ...formData, choices: updatedChoices });
@@ -141,6 +142,13 @@ const QuestionBank = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setSubmitError('');
+
+    const hasCorrectChoice = formData.choices.some(c => c.choice_correct);
+    if (!hasCorrectChoice) {
+      setSubmitError(t('question.requireCorrectChoice', 'Please select at least one correct choice.'));
+      return;
+    }
+
     setIsSubmitting(true);
 
     try {
@@ -148,14 +156,14 @@ const QuestionBank = () => {
       if (!token) throw new Error('No auth token');
 
       if (editingId) {
-        await axios.put(`http://localhost:8000/api/teacher/questions/${editingId}/`, formData, {
+        await api.put(`/api/teacher/questions/${editingId}/`, formData, {
           headers: {
             Authorization: `Bearer ${token}`,
             'Content-Type': 'application/json'
           }
         });
       } else {
-        await axios.post('http://localhost:8000/api/teacher/questions/', formData, {
+        await api.post('/api/teacher/questions/', formData, {
           headers: {
             Authorization: `Bearer ${token}`,
             'Content-Type': 'application/json'
@@ -220,7 +228,7 @@ const QuestionBank = () => {
     setIsDeleting(true);
     try {
       const token = localStorage.getItem('token');
-      await axios.delete(`http://localhost:8000/api/teacher/questions/${questionToDelete}/`, {
+      await api.delete(`/api/teacher/questions/${questionToDelete}/`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       setDeleteModalOpen(false);
@@ -310,7 +318,7 @@ const QuestionBank = () => {
             <div key={q.qt_id} className="bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800 overflow-hidden flex flex-col p-5 transition-colors">
               <div className="flex justify-between items-start mb-3">
                 <div>
-                  <h3 className="font-semibold text-lg text-slate-800 dark:text-slate-100">{renderTextWithMath(q.qt_detail)}</h3>
+                  <h3 className="font-medium text-lg text-slate-800 dark:text-slate-100">{renderTextWithMath(q.qt_detail)}</h3>
                   {q.qt_image_url && (
                     <img src={q.qt_image_url} alt="Question" className="mt-2 max-w-sm rounded-lg border border-slate-200 dark:border-slate-700" />
                   )}
@@ -454,14 +462,11 @@ const QuestionBank = () => {
                       />
                     </div>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <textarea
-                        name="qt_detail"
+                      <RichTextEditor
                         value={formData.qt_detail}
-                        onChange={handleInputChange}
+                        onChange={(val) => handleInputChange({ target: { name: 'qt_detail', value: val } })}
                         placeholder={ocrMode === 'math' ? `${t('question.questionText')} (use $math$ or $$math$$ for LaTeX)` : t('question.questionText')}
-                        rows={4}
-                        className="w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all text-sm resize-none bg-white dark:bg-slate-900 text-slate-800 dark:text-white"
-                        required
+                        className="w-full text-sm"
                       />
                       <div className="w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 overflow-y-auto max-h-[110px] text-sm text-slate-800 dark:text-slate-200">
                         <div className="text-xs font-semibold text-slate-400 mb-1">PREVIEW</div>
@@ -500,13 +505,12 @@ const QuestionBank = () => {
                                   {String.fromCharCode(65 + index)}
                                 </span>
                                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-2 flex-1">
-                                  <input
-                                    type="text"
+                                  <RichTextEditor
+                                    simple={true}
                                     value={choice.choice_detail}
-                                    onChange={(e) => handleChoiceChange(index, 'choice_detail', e.target.value)}
+                                    onChange={(val) => handleChoiceChange(index, 'choice_detail', val)}
                                     placeholder={ocrMode === 'math' ? `Choice ${String.fromCharCode(65 + index)} (use $math$ for LaTeX)` : `Choice ${String.fromCharCode(65 + index)}`}
-                                    className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-sm bg-white dark:bg-slate-900 text-slate-800 dark:text-white"
-                                    required
+                                    className="w-full text-sm"
                                   />
                                   <div className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 text-slate-800 dark:text-slate-200 text-sm overflow-x-auto whitespace-nowrap min-h-[38px] flex items-center">
                                     {choice.choice_detail ? renderTextWithMath(choice.choice_detail) : <span className="text-slate-400 text-xs">{t('question.preview')}</span>}

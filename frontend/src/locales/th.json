@@ -11,7 +11,8 @@
     "teacherPortal": "หน้าผู้สอน",
     "logoutConfirmTitle": "ยืนยันการออกจากระบบ",
     "logoutConfirmDesc": "กรุณายืนยันก่อนออกจากระบบ",
-    "logoutConfirmText": "คุณแน่ใจหรือว่าต้องการออกจากระบบ? คุณจะต้องเข้าสู่ระบบอีกครั้งเพื่อเข้าใช้งาน"
+    "logoutConfirmText": "คุณแน่ใจหรือว่าต้องการออกจากระบบ? คุณจะต้องเข้าสู่ระบบอีกครั้งเพื่อเข้าใช้งาน",
+    "results": "ผลการสอบ"
   },
   "dashboard": {
     "title": "ยินดีต้อนรับกลับ",
@@ -197,6 +198,43 @@
     "submitExam": "ส่งข้อสอบ",
     "confirmSubmit": "ยืนยันการส่งข้อสอบ?",
     "confirm": "ใช่, ส่งเลย"
+  },
+  "studentDashboard": {
+    "welcomeBack": "ยินดีต้อนรับกลับมา, {{name}}!",
+    "learningProgress": "นี่คือความคืบหน้าในการเรียนของคุณ",
+    "joinExamRoom": "เข้าห้องสอบ",
+    "enterExamCode": "กรอกรหัสผ่านเพื่อเริ่มทำข้อสอบ",
+    "enrolledCourses": "วิชาที่ลงทะเบียน",
+    "completedExams": "การสอบที่เสร็จสิ้น",
+    "pendingExams": "การสอบที่รอทำ",
+    "averageScore": "คะแนนเฉลี่ย",
+    "recentResults": "ผลการสอบล่าสุด",
+    "noRecentResults": "ไม่พบผลการสอบล่าสุด",
+    "startAssessment": "เริ่มทำข้อสอบ",
+    "viewAll": "ดูทั้งหมด",
+    "tryAgain": "ลองใหม่อีกครั้ง"
+  },
+  "joinExam": {
+    "enterPasscode": "กรอกรหัสเข้าห้องสอบ",
+    "passcodeLabel": "รหัสข้อสอบ",
+    "passcodePlaceholder": "เช่น CYBER2026",
+    "joinRoom": "เข้าห้องสอบ",
+    "errorAuth": "ไม่พบข้อมูลยืนยันตัวตน กรุณาเข้าสู่ระบบอีกครั้ง"
+  },
+  "studentResults": {
+    "examResults": "ผลการสอบ",
+    "trackPerformance": "ติดตามผลการเรียนและความคืบหน้า",
+    "totalExams": "การสอบทั้งหมด",
+    "averageScore": "คะแนนเฉลี่ย",
+    "passed": "ผ่าน",
+    "failed": "ไม่ผ่าน",
+    "detailedResults": "ผลสอบแบบละเอียด",
+    "completedOn": "ทำเสร็จเมื่อ {{date}}",
+    "questions": "คำถาม",
+    "correct": "ตอบถูก",
+    "incorrect": "ตอบผิด",
+    "scoreProgress": "คะแนนที่ได้",
+    "noResults": "ไม่พบผลการสอบ",
+    "excellent": "ยอดเยี่ยม"
   }
 }
-

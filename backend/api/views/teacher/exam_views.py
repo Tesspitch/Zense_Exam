@@ -332,13 +332,32 @@ def teacher_exam_detail(request, exam_id):
             time_start_str = data.get('time_start')
             time_end_str = data.get('time_end')
 
-            detail_online = detail_online_exam.objects.filter(online_exam_id=exam).first()
-            if detail_online and date_str and time_start_str and time_end_str:
-                detail_online.date_exam = datetime.strptime(date_str, '%Y-%m-%d').date()
-                detail_online.time_start = datetime.strptime(f"{date_str} {time_start_str}", '%Y-%m-%d %H:%M')
-                detail_online.time_end = datetime.strptime(f"{date_str} {time_end_str}", '%Y-%m-%d %H:%M')
-                detail_online.online_exam_status = 'Active' if exam.online_exam_is_active else 'Scheduled'
-                detail_online.save()
+            if time_start_str and len(time_start_str) > 5:
+                time_start_str = time_start_str[:5]
+            if time_end_str and len(time_end_str) > 5:
+                time_end_str = time_end_str[:5]
+
+            if date_str and time_start_str and time_end_str:
+                date_obj = datetime.strptime(date_str, '%Y-%m-%d').date()
+                start_dt = datetime.strptime(f"{date_str} {time_start_str}", '%Y-%m-%d %H:%M')
+                end_dt = datetime.strptime(f"{date_str} {time_end_str}", '%Y-%m-%d %H:%M')
+                
+                detail_online, created = detail_online_exam.objects.get_or_create(
+                    online_exam_id=exam,
+                    defaults={
+                        'date_exam': date_obj,
+                        'time_start': start_dt,
+                        'time_end': end_dt,
+                        'online_exam_status': 'Active' if exam.online_exam_is_active else 'Scheduled',
+                        'num_of_std': 0
+                    }
+                )
+                if not created:
+                    detail_online.date_exam = date_obj
+                    detail_online.time_start = start_dt
+                    detail_online.time_end = end_dt
+                    detail_online.online_exam_status = 'Active' if exam.online_exam_is_active else 'Scheduled'
+                    detail_online.save()
 
             return JsonResponse({'message': 'Exam updated successfully'}, status=200)
 

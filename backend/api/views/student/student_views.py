@@ -109,3 +109,79 @@ def get_student_dashboard(request):
             return JsonResponse({'error': f'Server Error: {str(e)}'}, status=500)
             
     return JsonResponse({'error': 'Method not allowed'}, status=405)
+
+
+@csrf_exempt
+def get_student_results_page(request):
+    if request.method == 'GET':
+        try:
+            # 1. รับและถอดรหัส Token
+            auth_header = request.headers.get('Authorization')
+            if not auth_header or not auth_header.startswith('Bearer '):
+                return JsonResponse({'error': 'Unauthorized'}, status=401)
+            
+            token = auth_header.split(' ')[1]
+            decoded = jwt.decode(token, settings.SECRET_KEY, algorithms=['HS256'])
+            std_id = int(decoded['user_id'])
+            
+            # 2. ดึงประวัติการสอบ
+            results = result_exam.objects.select_related('online_exam_id').filter(std_id=std_id).order_by('-time_exam')
+
+            completed_exams_count = results.count()
+            passed_count = 0
+            failed_count = 0
+            total_percentage_sum = 0
+            
+            detailed_results = []
+
+            for res in results:
+                # หาจำนวนข้อทั้งหมดจาก exam_set_id
+                total_qs = detail_exam_set.objects.filter(exam_set_id=res.online_exam_id.exam_set_id).count() if res.online_exam_id.exam_set_id else 0
+                
+                score = float(res.result_score)
+                percentage = round((score / total_qs * 100), 2) if total_qs > 0 else 0
+                
+                total_percentage_sum += percentage
+                
+                if percentage >= 50:
+                    passed_count += 1
+                else:
+                    failed_count += 1
+                
+                # หาชื่อวิชา
+                subject_name = "Unknown Subject"
+                first_detail = detail_exam_set.objects.filter(exam_set_id=res.online_exam_id.exam_set_id).first()
+                if first_detail and first_detail.qt_id and first_detail.qt_id.chap_id and first_detail.qt_id.chap_id.sj_id:
+                    subject_name = first_detail.qt_id.chap_id.sj_id.sj_name
+
+                incorrect = total_qs - int(score) if total_qs > 0 else 0
+                
+                detailed_results.append({
+                    'exam_name': res.online_exam_id.online_exam_name,
+                    'subject_name': subject_name,
+                    'completed_on': res.time_exam.strftime("%Y-%m-%d"),
+                    'score': score,
+                    'percentage': percentage,
+                    'total_questions': total_qs,
+                    'correct': int(score),
+                    'incorrect': incorrect,
+                })
+
+            average_score = round(total_percentage_sum / completed_exams_count, 1) if completed_exams_count > 0 else 0
+
+            return JsonResponse({
+                'stats': {
+                    'total_exams': completed_exams_count,
+                    'average_score': average_score,
+                    'passed': passed_count,
+                    'failed': failed_count
+                },
+                'detailed_results': detailed_results
+            }, status=200)
+
+        except jwt.ExpiredSignatureError:
+            return JsonResponse({'error': 'Session หมดอายุ'}, status=401)
+        except Exception as e:
+            return JsonResponse({'error': f'Server Error: {str(e)}'}, status=500)
+            
+    return JsonResponse({'error': 'Method not allowed'}, status=405)

@@ -2,6 +2,7 @@ import { LogOut, User, Bell, Menu, Sun, Moon, Languages } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import axios from 'axios';
+import api from '../../../utils/api';
 import { jwtDecode } from 'jwt-decode';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../../context/ThemeContext';
@@ -11,7 +12,7 @@ const Header = ({ toggleSidebar }) => {
   const navigate = useNavigate();
   const { t, i18n } = useTranslation();
   const { theme, toggleTheme } = useTheme();
-  
+
   const [displayName, setDisplayName] = useState('User');
   const [displayEmail, setDisplayEmail] = useState('Verified User');
   const [role, setRole] = useState('Student');
@@ -50,7 +51,7 @@ const Header = ({ toggleSidebar }) => {
   const handleConfirmLogout = () => { localStorage.removeItem('token'); navigate('/login'); };
 
   const goToProfile = () => navigate(role === 'Teacher' ? '/teacher/profile' : '/student/profile');
-  
+
   const toggleLanguage = () => {
     i18n.changeLanguage(i18n.language === 'en' ? 'th' : 'en');
   };
@@ -58,7 +59,7 @@ const Header = ({ toggleSidebar }) => {
   return (
     <header className="h-16 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between px-4 md:px-8 sticky top-0 z-20 w-full transition-colors">
       {/* Mobile Menu Button */}
-      <button 
+      <button
         onClick={toggleSidebar}
         className="md:hidden p-2 text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-lg transition-colors"
       >
@@ -67,7 +68,7 @@ const Header = ({ toggleSidebar }) => {
 
       {/* Right side icons */}
       <div className="flex items-center gap-2 md:gap-5 ml-auto">
-        <button 
+        <button
           onClick={toggleLanguage}
           className="p-2 text-slate-400 hover:text-blue-600 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-full transition-colors flex items-center gap-1 font-semibold text-xs uppercase"
         >
@@ -75,40 +76,36 @@ const Header = ({ toggleSidebar }) => {
           {i18n.language === 'en' ? 'EN' : 'TH'}
         </button>
 
-        <button 
+        <button
           onClick={toggleTheme}
           className="p-2 text-slate-400 hover:text-amber-500 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-full transition-colors hidden sm:block"
         >
           {theme === 'dark' ? <Sun size={20} /> : <Moon size={20} />}
         </button>
 
-        <button className="p-2 text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-full transition-colors hidden sm:block">
-          <Bell size={20} />
+        <div
+          role="button"
+          tabIndex={0}
+          onClick={goToProfile}
+          onKeyDown={(e) => { if (e.key === 'Enter') goToProfile(); }}
+          className="flex items-center gap-3 border-l pl-5 border-slate-100 dark:border-slate-800 cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800 hover:rounded-lg transition-all p-1"
+        >
+          <div className="text-right hidden sm:block">
+            <p className="text-xs font-bold text-slate-800 dark:text-slate-200">{displayName}</p>
+            <p className="text-[10px] text-slate-400">{displayEmail}</p>
+          </div>
+          <div className="w-9 h-9 bg-slate-100 dark:bg-slate-800 rounded-full flex items-center justify-center text-slate-500 border border-slate-200 dark:border-slate-700 ml-1 sm:ml-3">
+            <User size={18} />
+          </div>
+        </div>
+
+        <button
+          onClick={handleLogout}
+          className="flex items-center gap-2 text-red-500 text-sm font-bold hover:bg-red-50 dark:hover:bg-red-900/30 px-3 py-2 rounded-lg transition-all"
+        >
+          <LogOut size={18} />
+          <span className="hidden lg:inline">{t('header.logout', 'Logout')}</span>
         </button>
-
-      <div
-        role="button"
-        tabIndex={0}
-        onClick={goToProfile}
-        onKeyDown={(e) => { if (e.key === 'Enter') goToProfile(); }}
-        className="flex items-center gap-3 border-l pl-5 border-slate-100 dark:border-slate-800 cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800 hover:rounded-lg transition-all p-1"
-      >
-        <div className="text-right hidden sm:block">
-          <p className="text-xs font-bold text-slate-800 dark:text-slate-200">{displayName}</p>
-          <p className="text-[10px] text-slate-400">{displayEmail}</p>
-        </div>
-        <div className="w-9 h-9 bg-slate-100 dark:bg-slate-800 rounded-full flex items-center justify-center text-slate-500 border border-slate-200 dark:border-slate-700 ml-1 sm:ml-3">
-          <User size={18} />
-        </div>
-      </div>
-
-      <button
-        onClick={handleLogout}
-        className="flex items-center gap-2 text-red-500 text-sm font-bold hover:bg-red-50 dark:hover:bg-red-900/30 px-3 py-2 rounded-lg transition-all"
-      >
-        <LogOut size={18} />
-        <span className="hidden lg:inline">{t('header.logout', 'Logout')}</span>
-      </button>
       </div>
 
       {isShowConfirmLogout && createPortal(

@@ -5,7 +5,7 @@ from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from api.models import (
     Online_exam, detail_online_exam, detail_exam_set, 
-    Choice, Question, Student, result_exam, std_answer
+    Choice, Question, Student, result_exam, std_answer, diff_index
 )
 from django.utils import timezone
 from datetime import datetime
@@ -161,6 +161,38 @@ def submit_exam(request, exam_id):
                             ans=c_id
                         )
                         next_ans_id += 1
+
+                # Calculate and update question difficulty automatically
+                for d in details_set:
+                    q_obj = d.qt_id
+                    n = std_answer.objects.filter(qt_id=q_obj).count()
+                    if n > 0:
+                        r = std_answer.objects.filter(qt_id=q_obj, choice_id__choice_correct=True).count()
+                        p = r / n
+                        
+                        # Update Question difficulty level
+                        if p >= 0.61:
+                            q_obj.qt_diff_lv = 'easy'
+                        elif p >= 0.41:
+                            q_obj.qt_diff_lv = 'medium'
+                        else:
+                            q_obj.qt_diff_lv = 'hard'
+                        q_obj.save()
+                        
+                        # Update diff_index table
+                        diff_obj = diff_index.objects.filter(detail_exam_set_id=d, qt_id=q_obj).first()
+                        if diff_obj:
+                            diff_obj.diff_level = round(p, 2)
+                            diff_obj.save()
+                        else:
+                            max_diff = diff_index.objects.order_by('-diff_index_id').first()
+                            next_diff_id = (max_diff.diff_index_id + 1) if max_diff else 1
+                            diff_index.objects.create(
+                                diff_index_id=next_diff_id,
+                                detail_exam_set_id=d,
+                                qt_id=q_obj,
+                                diff_level=round(p, 2)
+                            )
 
             return JsonResponse({
                 'success': True,

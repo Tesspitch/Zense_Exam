@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import axios from 'axios';
+import api from '../../../utils/api';
 import { Book, Edit3, Trash2, Plus, X, User, Calendar, FileText, HelpCircle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
@@ -11,7 +12,7 @@ const CourseTeacher = () => {
   const [subjects, setSubjects] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  
+
   // Modal state
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
@@ -26,10 +27,10 @@ const CourseTeacher = () => {
 
   const handleDelete = async (chap_id) => {
     if (!window.confirm('Are you sure you want to delete this course?')) return;
-    
+
     try {
       const token = localStorage.getItem('token');
-      await axios.delete(`http://localhost:8000/api/teacher/courses/${chap_id}/`, {
+      await api.delete(`/api/teacher/courses/${chap_id}/`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       fetchData();
@@ -49,7 +50,7 @@ const CourseTeacher = () => {
     });
     setIsModalOpen(true);
   };
-  
+
   const openCreateModal = () => {
     setIsEditing(false);
     setFormData({ chap_name: '', sj_id: '', chap_id: '', chap_desc: '' });
@@ -62,12 +63,12 @@ const CourseTeacher = () => {
     try {
       const token = localStorage.getItem('token');
       if (!token) throw new Error('No auth token');
-      
+
       const [coursesRes, subjectsRes] = await Promise.all([
-        axios.get('http://localhost:8000/api/teacher/courses/', { headers: { Authorization: `Bearer ${token}` } }),
-        axios.get('http://localhost:8000/api/teacher/subjects/', { headers: { Authorization: `Bearer ${token}` } })
+        api.get(`/api/teacher/courses/`, { headers: { Authorization: `Bearer ${token}` } }),
+        api.get(`/api/teacher/subjects/`, { headers: { Authorization: `Bearer ${token}` } })
       ]);
-      
+
       setCourses(coursesRes.data.courses || []);
       setSubjects(subjectsRes.data.subjects || []);
     } catch (err) {
@@ -91,27 +92,27 @@ const CourseTeacher = () => {
     e.preventDefault();
     setSubmitError('');
     setIsSubmitting(true);
-    
+
     try {
       const token = localStorage.getItem('token');
       if (!token) throw new Error('No auth token');
-      
+
       if (isEditing) {
-        await axios.put(`http://localhost:8000/api/teacher/courses/${formData.chap_id}/`, formData, {
-          headers: { 
+        await api.put(`/api/teacher/courses/${formData.chap_id}/`, formData, {
+          headers: {
             Authorization: `Bearer ${token}`,
             'Content-Type': 'application/json'
           }
         });
       } else {
-        await axios.post('http://localhost:8000/api/teacher/courses/', formData, {
-          headers: { 
+        await api.post('/api/teacher/courses/', formData, {
+          headers: {
             Authorization: `Bearer ${token}`,
             'Content-Type': 'application/json'
           }
         });
       }
-      
+
       // Success
       setIsModalOpen(false);
       setFormData({ chap_name: '', sj_id: '', chap_id: '', chap_desc: '' });
@@ -132,7 +133,7 @@ const CourseTeacher = () => {
           <h1 className="text-2xl font-bold text-slate-800 dark:text-white">{t('header.courses', 'Courses')}</h1>
           <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">{t('course.subtitle', 'Manage courses for your subjects')}</p>
         </div>
-        <button 
+        <button
           onClick={openCreateModal}
           className="w-full sm:w-auto justify-center bg-zense-navy dark:bg-blue-600 hover:bg-blue-900 dark:hover:bg-blue-700 text-white px-4 py-2 rounded-xl text-sm font-medium flex items-center gap-2 transition-colors shadow-sm"
         >
@@ -162,18 +163,18 @@ const CourseTeacher = () => {
                     </span>
                   </div>
                 </div>
-                
+
                 <div className="flex items-center gap-2 text-sm text-slate-500 dark:text-slate-400 mb-4 pb-4 border-b border-slate-100 dark:border-slate-800">
                   <Book size={14} className="text-slate-400 dark:text-slate-500" />
                   <span>{course.sj_name}</span>
                   <span className="text-slate-300 dark:text-slate-600">&bull;</span>
                   <span>Code: {course.sj_id}</span>
                 </div>
-                
+
                 <p className="text-sm text-slate-600 dark:text-slate-400 mb-6 min-h-[40px]">
                   {course.chap_desc || t('course.noDescription', 'No description provided.')}
                 </p>
-                
+
                 <div className="flex items-center justify-between bg-slate-50 dark:bg-slate-800/50 rounded-lg p-3 mb-4">
                   <div className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-300">
                     <User size={16} className="text-slate-400 dark:text-slate-500" />
@@ -224,21 +225,21 @@ const CourseTeacher = () => {
                 <h2 className="text-xl font-bold text-slate-800 dark:text-white">{isEditing ? t('course.editCourse', 'Edit Course') : t('course.addNewCourse', 'Add New Course')}</h2>
                 <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">{isEditing ? t('course.updateDetails', 'Update course details') : t('course.createDetails', 'Create a new course for your students')}</p>
               </div>
-              <button 
+              <button
                 onClick={() => setIsModalOpen(false)}
                 className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 p-1 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
               >
                 <X size={20} />
               </button>
             </div>
-            
+
             <form onSubmit={handleSubmit} className="p-6">
               {submitError && (
                 <div className="mb-4 p-3 bg-red-50 text-red-600 text-sm rounded-lg border border-red-100">
                   {submitError}
                 </div>
               )}
-              
+
               <div className="space-y-4">
                 <div>
                   <label htmlFor="chap_name" className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">
@@ -255,7 +256,7 @@ const CourseTeacher = () => {
                     required
                   />
                 </div>
-                
+
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label htmlFor="sj_id" className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">
@@ -307,7 +308,7 @@ const CourseTeacher = () => {
                     disabled={isEditing}
                   />
                 </div>
-                
+
                 <div>
                   <label htmlFor="chap_desc" className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">
                     {t('course.description', 'Description (Optional)')}
@@ -323,7 +324,7 @@ const CourseTeacher = () => {
                   />
                 </div>
               </div>
-              
+
               <div className="mt-8">
                 <button
                   type="submit"

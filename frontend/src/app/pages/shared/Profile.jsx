@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
+import api from '../../../utils/api';
 import { User, Mail, ShieldCheck, Edit3, Lock, CheckCircle, Loader2 } from 'lucide-react';
 import EditProfileModal from './EditProfileModal';
 import ChangePasswordModal from './ChangePasswordModal';

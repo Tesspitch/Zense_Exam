@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import axios from 'axios';
+import api from '../../../utils/api';
 import { useTranslation } from 'react-i18next';
 import { X, ChevronRight } from 'lucide-react';
 
@@ -38,7 +39,7 @@ const DashboardTeacher = () => {
       try {
         const token = localStorage.getItem('token');
         if (!token) throw new Error('No auth token');
-        const res = await axios.get('http://localhost:8000/api/teacher/dashboard/', {
+        const res = await api.get('/api/teacher/dashboard/', {
           headers: { Authorization: `Bearer ${token}` }
         });
         const data = res.data;
@@ -69,7 +70,7 @@ const DashboardTeacher = () => {
     setExamResults([]);
     try {
       const token = localStorage.getItem('token');
-      const res = await axios.get(`http://localhost:8000/api/teacher/exams/${exam.online_exam_id}/results/`, {
+      const res = await api.get(`/api/teacher/exams/${exam.online_exam_id}/results/`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       setExamResults(res.data.results || []);

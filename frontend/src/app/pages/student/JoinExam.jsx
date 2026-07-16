@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import axios from 'axios';
+import api from '../../../utils/api';
 import { useNavigate } from 'react-router-dom';
 import { ArrowRight, AlertCircle, Loader2 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
@@ -21,14 +22,13 @@ const JoinExam = () => {
     try {
       const token = localStorage.getItem('token');
       if (!token) {
-        setError('Authentication token not found. Please login again.');
+        setError(t('joinExam.errorAuth', 'Authentication token not found. Please login again.'));
         setLoading(false);
         return;
       }
 
       // ปรับโครงสร้าง URL และส่งค่าเป็นตัวพิมพ์ใหญ่ตามมาตรฐาน Database
-      const response = await axios.post(
-        'http://localhost:8000/api/join_exam/',
+      const response = await api.post('/api/join_exam/',
         { exam_pass: examPass.trim().toUpperCase() }, 
         {
           headers: {
@@ -50,7 +50,7 @@ const JoinExam = () => {
       
     } catch (err) {
       // ดึง Error Message ตรงๆ จาก Django Backend มาแสดงบน UI
-      const errorMessage = err.response?.data?.error || 'ไม่สามารถเข้าร่วมห้องสอบได้ รหัสผ่านอาจไม่ถูกต้อง';
+      const errorMessage = err.response?.data?.error || t('joinExam.errorInvalidPasscode', 'Cannot join exam. Passcode might be invalid.');
       setError(errorMessage);
       console.error('Join exam error:', err);
     } finally {
@@ -65,17 +65,17 @@ const JoinExam = () => {
           <div className="p-2 bg-slate-50 dark:bg-slate-900 rounded-lg">
             <ArrowRight className="text-zense-navy dark:text-blue-400" size={20} />
           </div>
-          <h2 className="text-xl font-bold text-slate-800 dark:text-white">Enter Exam Passcode</h2>
+          <h2 className="text-xl font-bold text-slate-800 dark:text-white">{t('joinExam.enterPasscode', 'Enter Exam Passcode')}</h2>
         </div>
 
         <form onSubmit={handleJoinExam} className="space-y-6">
           <div>
-            <label className="block text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-2">Exam Passcode</label>
+            <label className="block text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-2">{t('joinExam.passcodeLabel', 'Exam Passcode')}</label>
             <input
               type="text"
               value={examPass}
               onChange={(e) => setExamPass(e.target.value.toUpperCase())}
-              placeholder="e.g., CYBER2026"
+              placeholder={t('joinExam.passcodePlaceholder', 'e.g., CYBER2026')}
               className="w-full px-4 py-3.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 focus:border-zense-navy dark:focus:border-blue-500 focus:ring-2 focus:ring-blue-900/10 dark:focus:ring-blue-500/20 outline-none transition-all font-mono text-lg tracking-wide text-slate-800 dark:text-white"
             />
           </div>
@@ -95,7 +95,7 @@ const JoinExam = () => {
               loading || !examPass ? 'bg-slate-200 dark:bg-slate-700 text-slate-400 dark:text-slate-500 cursor-not-allowed' : 'bg-zense-navy dark:bg-blue-600 hover:bg-slate-800 dark:hover:bg-blue-700 shadow-lg shadow-blue-900/10 dark:shadow-none active:scale-[0.99]'
             }`}
           >
-            {loading ? <Loader2 className="animate-spin" size={18} /> : 'Join Exam Room'}
+            {loading ? <Loader2 className="animate-spin" size={18} /> : t('joinExam.joinRoom', 'Join Exam Room')}
           </button>
         </form>
 

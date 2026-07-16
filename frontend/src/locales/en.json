@@ -11,7 +11,8 @@
     "teacherPortal": "Teacher Portal",
     "logoutConfirmTitle": "Confirm Logout",
     "logoutConfirmDesc": "Please confirm before logging out",
-    "logoutConfirmText": "Are you sure you want to log out? You will need to log in again to access the system."
+    "logoutConfirmText": "Are you sure you want to log out? You will need to log in again to access the system.",
+    "results": "Results"
   },
   "dashboard": {
     "title": "Welcome back",
@@ -197,6 +198,43 @@
     "submitExam": "Submit Exam",
     "confirmSubmit": "Submit Exam?",
     "confirm": "Yes, Submit"
+  },
+  "studentDashboard": {
+    "welcomeBack": "Welcome Back, {{name}}!",
+    "learningProgress": "Here's your learning progress",
+    "joinExamRoom": "Join Exam Room",
+    "enterExamCode": "Enter exam code to start your assessment",
+    "enrolledCourses": "Enrolled Courses",
+    "completedExams": "Completed Exams",
+    "pendingExams": "Pending Exams",
+    "averageScore": "Average Score",
+    "recentResults": "Recent Results",
+    "noRecentResults": "No recent exam results found",
+    "startAssessment": "Start assessment",
+    "viewAll": "View all",
+    "tryAgain": "Try again"
+  },
+  "joinExam": {
+    "enterPasscode": "Enter Exam Passcode",
+    "passcodeLabel": "Exam Passcode",
+    "passcodePlaceholder": "e.g., CYBER2026",
+    "joinRoom": "Join Exam Room",
+    "errorAuth": "Authentication token not found. Please login again."
+  },
+  "studentResults": {
+    "examResults": "Exam Results",
+    "trackPerformance": "Track your performance and progress",
+    "totalExams": "Total Exams",
+    "averageScore": "Average Score",
+    "passed": "Passed",
+    "failed": "Failed",
+    "detailedResults": "Detailed Results",
+    "completedOn": "Completed on {{date}}",
+    "questions": "Questions",
+    "correct": "Correct",
+    "incorrect": "Incorrect",
+    "scoreProgress": "Score Progress",
+    "noResults": "No exam results found.",
+    "excellent": "Excellent"
   }
 }
-

@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import axios from 'axios';
+import api from '../../../utils/api';
 import {
   Plus, Laptop, Calendar, FileText, HelpCircle,
   Clock, Users, TrendingUp, Edit, Download,
@@ -8,6 +9,7 @@ import {
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { renderTextWithMath } from '../../component/QuestionComponents';
+import PaperPreviewModal from '../../component/PaperPreviewModal';
 
 const ExamTeacher = () => {
   const { t } = useTranslation();
@@ -31,7 +33,9 @@ const ExamTeacher = () => {
     easy_count: 0,
     medium_count: 0,
     hard_count: 0,
-    duration: 0
+    duration: 0,
+    export_format: 'pdf',
+    columns: 1
   });
   const [submitting, setSubmitting] = useState(false);
   const [modalError, setModalError] = useState('');
@@ -41,6 +45,9 @@ const ExamTeacher = () => {
   const [showEditModal, setShowEditModal] = useState(false);
   const [showViewModal, setShowViewModal] = useState(false);
   const [showResultsModal, setShowResultsModal] = useState(false);
+  const [showPaperPreview, setShowPaperPreview] = useState(false);
+  const [paperExamData, setPaperExamData] = useState(null);
+  const [paperSettings, setPaperSettings] = useState({ format: 'pdf', columns: 1 });
 
   const [currentExam, setCurrentExam] = useState(null);
   const [examDetails, setExamDetails] = useState(null);
@@ -63,7 +70,7 @@ const ExamTeacher = () => {
     try {
       const token = localStorage.getItem('token');
       if (!token) throw new Error('No auth token');
-      const res = await axios.get('http://localhost:8000/api/teacher/exams/', {
+      const res = await api.get('/api/teacher/exams/', {
         headers: { Authorization: `Bearer ${token}` }
       });
       setExams(res.data.exams || []);
@@ -78,7 +85,7 @@ const ExamTeacher = () => {
   const fetchCourses = async () => {
     try {
       const token = localStorage.getItem('token');
-      const res = await axios.get('http://localhost:8000/api/teacher/courses/', {
+      const res = await api.get('/api/teacher/courses/', {
         headers: { Authorization: `Bearer ${token}` }
       });
       setCourses(res.data.courses || []);
@@ -101,7 +108,7 @@ const ExamTeacher = () => {
       }
       try {
         const token = localStorage.getItem('token');
-        const res = await axios.post('http://localhost:8000/api/teacher/exams/question-counts/', {
+        const res = await api.post('/api/teacher/exams/question-counts/', {
           courses: selectedCourses
         }, {
           headers: { Authorization: `Bearer ${token}` }
@@ -176,7 +183,7 @@ const ExamTeacher = () => {
     setSubmitting(true);
     try {
       const token = localStorage.getItem('token');
-      await axios.post('http://localhost:8000/api/teacher/exams/', {
+      const res = await api.post('/api/teacher/exams/', {
         name: modalForm.name,
         description: modalForm.description,
         exam_type: modalForm.exam_type,
@@ -185,14 +192,31 @@ const ExamTeacher = () => {
         medium_count: Number(modalForm.medium_count),
         hard_count: Number(modalForm.hard_count),
         duration: Number(modalForm.duration),
-        date_exam: modalForm.date_exam,
-        time_start: modalForm.time_start,
-        time_end: modalForm.time_end
+        date_exam: modalForm.exam_type === 'online' ? modalForm.date_exam : null,
+        time_start: modalForm.exam_type === 'online' ? modalForm.time_start : null,
+        time_end: modalForm.exam_type === 'online' ? modalForm.time_end : null
       }, {
         headers: { Authorization: `Bearer ${token}` }
       });
       setShowModal(false);
       fetchExams();
+      
+      if (modalForm.exam_type === 'paper') {
+        // Fetch generated exam details for preview
+        const examId = res.data.exam_id;
+        try {
+          const detailRes = await api.get(`/api/teacher/exams/${examId}/`, {
+            headers: { Authorization: `Bearer ${token}` }
+          });
+          setPaperExamData(detailRes.data);
+          setPaperSettings({ format: modalForm.export_format, columns: Number(modalForm.columns) });
+          setShowPaperPreview(true);
+        } catch (fetchErr) {
+          console.error('Failed to fetch paper exam details for preview:', fetchErr);
+          alert('Failed to load paper preview.');
+        }
+      }
+      
     } catch (err) {
       console.error(err);
       setModalError(err.response?.data?.error || 'Failed to generate exam');
@@ -206,7 +230,7 @@ const ExamTeacher = () => {
     setCurrentExam(exam);
     try {
       const token = localStorage.getItem('token');
-      const res = await axios.get(`http://localhost:8000/api/teacher/exams/${exam.online_exam_id}/`, {
+      const res = await api.get(`/api/teacher/exams/${exam.online_exam_id}/`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       setEditForm({
@@ -229,7 +253,7 @@ const ExamTeacher = () => {
   const handleEditSubmit = async () => {
     try {
       const token = localStorage.getItem('token');
-      await axios.put(`http://localhost:8000/api/teacher/exams/${currentExam.online_exam_id}/`, editForm, {
+      await api.put(`/api/teacher/exams/${currentExam.online_exam_id}/`, editForm, {
         headers: { Authorization: `Bearer ${token}` }
       });
       setShowEditModal(false);
@@ -244,7 +268,7 @@ const ExamTeacher = () => {
     setActionLoading(true);
     try {
       const token = localStorage.getItem('token');
-      const res = await axios.get(`http://localhost:8000/api/teacher/exams/${exam.online_exam_id}/`, {
+      const res = await api.get(`/api/teacher/exams/${exam.online_exam_id}/`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       setExamDetails(res.data);
@@ -262,7 +286,7 @@ const ExamTeacher = () => {
     setCurrentExam(exam);
     try {
       const token = localStorage.getItem('token');
-      const res = await axios.get(`http://localhost:8000/api/teacher/exams/${exam.online_exam_id}/results/`, {
+      const res = await api.get(`/api/teacher/exams/${exam.online_exam_id}/results/`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       setExamResults(res.data.results || []);
@@ -279,7 +303,7 @@ const ExamTeacher = () => {
     if (window.confirm(t('exam.deleteExamConfirm', 'Are you sure you want to delete this exam?'))) {
       try {
         const token = localStorage.getItem('token');
-        await axios.delete(`http://localhost:8000/api/teacher/exams/${exam.online_exam_id}/`, {
+        await api.delete(`/api/teacher/exams/${exam.online_exam_id}/`, {
           headers: { Authorization: `Bearer ${token}` }
         });
         fetchExams();
@@ -438,6 +462,32 @@ const ExamTeacher = () => {
                     <FileText size={16} />
                     {t('exam.viewExam', 'View Exam')}
                   </button>
+                  {!exam.is_active && (
+                    <button
+                      onClick={async () => {
+                        setActionLoading(true);
+                        try {
+                          const token = localStorage.getItem('token');
+                          const res = await api.get(`/api/teacher/exams/${exam.online_exam_id}/`, {
+                            headers: { Authorization: `Bearer ${token}` }
+                          });
+                          setPaperExamData(res.data);
+                          setPaperSettings({ format: 'pdf', columns: 1 });
+                          setShowPaperPreview(true);
+                        } catch (err) {
+                          console.error(err);
+                          alert('Failed to load exam details for export');
+                        } finally {
+                          setActionLoading(false);
+                        }
+                      }}
+                      disabled={actionLoading}
+                      className="flex-1 min-w-[100px] bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 dark:text-indigo-400 text-sm font-medium py-2 rounded-lg hover:bg-indigo-100 dark:hover:bg-indigo-900/40 transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
+                    >
+                      <Download size={16} />
+                      {t('exam.export', 'Export')}
+                    </button>
+                  )}
                   <button
                     onClick={() => handleDeleteClick(exam)}
                     disabled={actionLoading}
@@ -582,9 +632,10 @@ const ExamTeacher = () => {
                 </div>
               </div>
 
-              {/* Schedule Row */}
-              <div>
-                <div className="grid grid-cols-3 gap-4">
+              {/* Schedule Row (Only for Online) */}
+              {modalForm.exam_type === 'online' && (
+                <div>
+                  <div className="grid grid-cols-3 gap-4">
                   <div>
                     <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">{t('exam.examDate', 'Exam Date')}</label>
                     <input
@@ -617,6 +668,90 @@ const ExamTeacher = () => {
                   </div>
                 </div>
               </div>
+              )}
+
+              {/* Paper Export Options (Only for Paper) */}
+              {modalForm.exam_type === 'paper' && (
+                <div className="grid grid-cols-2 gap-4">
+                  {/* Export Format */}
+                  <div>
+                    <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">{t('exam.exportFormat', 'Export Format')}</label>
+                    <div className="flex gap-4">
+                      <label className={`flex-1 cursor-pointer p-3 rounded-xl border transition-all ${modalForm.export_format === 'pdf'
+                        ? 'border-zense-navy dark:border-blue-500 bg-blue-50/50 dark:bg-blue-900/10'
+                        : 'border-slate-200 dark:border-slate-700'
+                        }`}>
+                        <div className="flex items-center gap-2">
+                          <input
+                            type="radio"
+                            name="export_format"
+                            value="pdf"
+                            checked={modalForm.export_format === 'pdf'}
+                            onChange={handleModalInput}
+                            className="text-blue-600"
+                          />
+                          <span className="font-semibold text-slate-800 dark:text-white text-sm">PDF</span>
+                        </div>
+                      </label>
+                      <label className={`flex-1 cursor-pointer p-3 rounded-xl border transition-all ${modalForm.export_format === 'docx'
+                        ? 'border-zense-navy dark:border-blue-500 bg-blue-50/50 dark:bg-blue-900/10'
+                        : 'border-slate-200 dark:border-slate-700'
+                        }`}>
+                        <div className="flex items-center gap-2">
+                          <input
+                            type="radio"
+                            name="export_format"
+                            value="docx"
+                            checked={modalForm.export_format === 'docx'}
+                            onChange={handleModalInput}
+                            className="text-blue-600"
+                          />
+                          <span className="font-semibold text-slate-800 dark:text-white text-sm">DOCX</span>
+                        </div>
+                      </label>
+                    </div>
+                  </div>
+
+                  {/* Columns */}
+                  <div>
+                    <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">{t('exam.layoutColumns', 'Layout Columns')}</label>
+                    <div className="flex gap-4">
+                      <label className={`flex-1 cursor-pointer p-3 rounded-xl border transition-all ${modalForm.columns === 1 || modalForm.columns === '1'
+                        ? 'border-zense-navy dark:border-blue-500 bg-blue-50/50 dark:bg-blue-900/10'
+                        : 'border-slate-200 dark:border-slate-700'
+                        }`}>
+                        <div className="flex items-center gap-2">
+                          <input
+                            type="radio"
+                            name="columns"
+                            value="1"
+                            checked={modalForm.columns == 1}
+                            onChange={handleModalInput}
+                            className="text-blue-600"
+                          />
+                          <span className="font-semibold text-slate-800 dark:text-white text-sm">1 Column</span>
+                        </div>
+                      </label>
+                      <label className={`flex-1 cursor-pointer p-3 rounded-xl border transition-all ${modalForm.columns === 2 || modalForm.columns === '2'
+                        ? 'border-zense-navy dark:border-blue-500 bg-blue-50/50 dark:bg-blue-900/10'
+                        : 'border-slate-200 dark:border-slate-700'
+                        }`}>
+                        <div className="flex items-center gap-2">
+                          <input
+                            type="radio"
+                            name="columns"
+                            value="2"
+                            checked={modalForm.columns == 2}
+                            onChange={handleModalInput}
+                            className="text-blue-600"
+                          />
+                          <span className="font-semibold text-slate-800 dark:text-white text-sm">2 Columns</span>
+                        </div>
+                      </label>
+                    </div>
+                  </div>
+                </div>
+              )}
 
               {/* Question Distribution */}
               <div>
@@ -907,6 +1042,15 @@ const ExamTeacher = () => {
           </div>
         </div>
       )}
+
+      {/* Paper Preview Modal */}
+      <PaperPreviewModal 
+        isOpen={showPaperPreview}
+        onClose={() => setShowPaperPreview(false)}
+        examData={paperExamData}
+        initialFormat={paperSettings.format}
+        initialColumns={paperSettings.columns}
+      />
     </div>
   );
 };

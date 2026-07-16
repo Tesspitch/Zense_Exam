@@ -13,6 +13,7 @@ import ExamRoom from './pages/student/ExamRoom.jsx';
 import ProtectedRoute from './component/ProtectedRoute.jsx'; // นำเข้าป้อมยาม
 import MainLayout from './component/layout/MainLayout.jsx';
 import Profile from './pages/shared/Profile.jsx';
+import StudentResults from './pages/student/StudentResults.jsx';
 
 const AppRoutes = () => {
   return (
@@ -48,6 +49,17 @@ const AppRoutes = () => {
           <ProtectedRoute allowedRole="Student">
             <MainLayout>
               <DashboardStudent />
+            </MainLayout>
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/student/results"
+        element={
+          <ProtectedRoute allowedRole="Student">
+            <MainLayout>
+              <StudentResults />
             </MainLayout>
           </ProtectedRoute>
         }

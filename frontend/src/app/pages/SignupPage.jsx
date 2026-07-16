@@ -1,3 +1,4 @@
+import api from '../../utils/api';
 import { useState } from "react";
 import axios from "axios";
 import { GraduationCap, UserCheck, CheckCircle } from "lucide-react";
@@ -18,13 +19,13 @@ const SignupPage = () => {
     const [showSuccess, setShowSuccess] = useState(false);
     const [successMessage, setSuccessMessage] = useState('');
     const [redirectText, setRedirectText] = useState('Redirecting to sign in...'); // สถานะบอกว่ากำลังไปหน้าไหน
-    
+
     const navigate = useNavigate();
 
     const handleSignup = async (e) => {
         e.preventDefault();
         setError("");
-        
+
         if (password !== confirm_password) {
             setError("Passwords do not match");
             return;
@@ -33,26 +34,26 @@ const SignupPage = () => {
             setError("Please enter a user ID");
             return;
         }
-        
+
         try {
-            const response = await axios.post("http://localhost:8000/api/signup/", {
+            const response = await api.post('/api/signup/', {
                 userId,
                 fullName,
                 email,
                 password,
                 role,
             });
-            
+
             const displayName = response.data.name || response.data.message || fullName;
             const { token, role: userRole } = response.data;
-            
+
             setSuccessMessage(`Account created for ${displayName}`);
-            
+
             // เช็กว่ามีการคืนค่า Token มาให้ Auto-login ไหม
             if (token) {
                 localStorage.setItem('token', token);
                 setRedirectText('Redirecting to Dashboard...');
-                
+
                 setTimeout(() => {
                     setShowSuccess(false);
                     if (userRole === 'Student') {
@@ -68,9 +69,9 @@ const SignupPage = () => {
                     navigate('/login');
                 }, 1700);
             }
-            
+
             setShowSuccess(true);
-            
+
         } catch (err) {
             setError(err.response?.data?.error || "Signup failed");
         }
@@ -100,9 +101,8 @@ const SignupPage = () => {
                             setRole("Student");
                             setTimeout(() => setIsRoleAnimating(false), 340);
                         }}
-                        className={`flex-1 flex items-center justify-center gap-2 py-3 text-sm font-bold rounded-xl transition-all ${
-                            role === "Student" ? "bg-white dark:bg-slate-600 text-zense-navy dark:text-white shadow-sm" : "text-slate-500 dark:text-slate-400"
-                        } ${isRoleAnimating && role === "Student" ? 'role-animate' : ''}`}
+                        className={`flex-1 flex items-center justify-center gap-2 py-3 text-sm font-bold rounded-xl transition-all ${role === "Student" ? "bg-white dark:bg-slate-600 text-zense-navy dark:text-white shadow-sm" : "text-slate-500 dark:text-slate-400"
+                            } ${isRoleAnimating && role === "Student" ? 'role-animate' : ''}`}
                     >
                         <UserCheck size={18} /> Student
                     </button>
@@ -113,9 +113,8 @@ const SignupPage = () => {
                             setRole("Teacher");
                             setTimeout(() => setIsRoleAnimating(false), 340);
                         }}
-                        className={`flex-1 flex items-center justify-center gap-2 py-3 text-sm font-bold rounded-xl transition-all ${
-                            role === "Teacher" ? "bg-white dark:bg-slate-600 text-zense-navy dark:text-white shadow-sm" : "text-slate-500 dark:text-slate-400"
-                        } ${isRoleAnimating && role === "Teacher" ? 'role-animate' : ''}`}
+                        className={`flex-1 flex items-center justify-center gap-2 py-3 text-sm font-bold rounded-xl transition-all ${role === "Teacher" ? "bg-white dark:bg-slate-600 text-zense-navy dark:text-white shadow-sm" : "text-slate-500 dark:text-slate-400"
+                            } ${isRoleAnimating && role === "Teacher" ? 'role-animate' : ''}`}
                     >
                         <GraduationCap size={18} /> Teacher
                     </button>

@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react';
 import axios from 'axios';
+import api from '../../../utils/api';
 import { Plus, Trash2, Save, X, ArrowLeft } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { renderTextWithMath, ImageUploadField } from '../../component/QuestionComponents';
+import { renderTextWithMath, ImageUploadField, RichTextEditor } from '../../component/QuestionComponents';
 import { useTranslation } from 'react-i18next';
 
 const BulkQuestionInput = () => {
@@ -35,7 +36,7 @@ const BulkQuestionInput = () => {
       try {
         const token = localStorage.getItem('token');
         if (!token) throw new Error('No auth token');
-        const res = await axios.get('http://localhost:8000/api/teacher/courses/', {
+        const res = await api.get('/api/teacher/courses/', {
           headers: { Authorization: `Bearer ${token}` }
         });
         setCourses(res.data.courses || []);
@@ -128,7 +129,7 @@ const BulkQuestionInput = () => {
 
     try {
       const token = localStorage.getItem('token');
-      const res = await axios.post('http://localhost:8000/api/teacher/math-ocr/', formDataObj, {
+      const res = await api.post('/api/teacher/math-ocr/', formDataObj, {
         headers: { Authorization: `Bearer ${token}` }
       });
       const latex = res.data.latex;
@@ -169,7 +170,7 @@ const BulkQuestionInput = () => {
       const token = localStorage.getItem('token');
       const validQuestions = questions.filter(isQuestionComplete).map(({ id, ...rest }) => rest);
 
-      await axios.post('http://localhost:8000/api/teacher/questions/bulk/', {
+      await api.post('/api/teacher/questions/bulk/', {
         questions: validQuestions,
         shared_group: {
           shared_text: sharedScenario.text,
@@ -259,12 +260,11 @@ const BulkQuestionInput = () => {
             <p className="text-sm text-slate-500 dark:text-slate-400">{t('question.sharedScenarioDesc')}</p>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <textarea
+            <RichTextEditor
               value={sharedScenario.text}
-              onChange={(e) => setSharedScenario(prev => ({ ...prev, text: e.target.value }))}
+              onChange={(val) => setSharedScenario(prev => ({ ...prev, text: val }))}
               placeholder={ocrMode === 'math' ? `${t('question.scenarioText')} (use $math$ or $$math$$ for LaTeX)` : t('question.scenarioText')}
-              rows={3}
-              className="w-full px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all text-sm resize-none bg-white dark:bg-slate-900 text-slate-800 dark:text-white"
+              className="w-full text-sm"
             />
             <div className="w-full px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 overflow-y-auto max-h-[85px] text-sm text-slate-800 dark:text-slate-200">
               <div className="text-xs font-semibold text-slate-400 mb-1">{t('question.preview')}</div>
@@ -367,12 +367,11 @@ const BulkQuestionInput = () => {
                     />
                   </div>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <textarea
+                    <RichTextEditor
                       value={q.qt_detail}
-                      onChange={(e) => updateQuestion(q.id, 'qt_detail', e.target.value)}
+                      onChange={(val) => updateQuestion(q.id, 'qt_detail', val)}
                       placeholder={ocrMode === 'math' ? `${t('question.questionText')} (use $math$ or $$math$$ for LaTeX)` : t('question.questionText')}
-                      rows={4}
-                      className="w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all text-sm resize-none bg-white dark:bg-slate-900 text-slate-800 dark:text-white"
+                      className="w-full text-sm"
                     />
                     <div className="w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 overflow-y-auto max-h-[110px] text-sm text-slate-800 dark:text-slate-200">
                       <div className="text-xs font-semibold text-slate-400 mb-1">{t('question.preview')}</div>
@@ -412,12 +411,12 @@ const BulkQuestionInput = () => {
                               {String.fromCharCode(65 + cIndex)}
                             </span>
                             <div className="grid grid-cols-1 lg:grid-cols-2 gap-2 flex-1">
-                              <input
-                                type="text"
+                              <RichTextEditor
+                                simple={true}
                                 value={choice.choice_detail}
-                                onChange={(e) => updateChoice(q.id, cIndex, 'choice_detail', e.target.value)}
+                                onChange={(val) => updateChoice(q.id, cIndex, 'choice_detail', val)}
                                 placeholder={ocrMode === 'math' ? `Choice ${String.fromCharCode(65 + cIndex)} (use $math$ for LaTeX)` : `Choice ${String.fromCharCode(65 + cIndex)}`}
-                                className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-sm bg-white dark:bg-slate-900 text-slate-800 dark:text-white"
+                                className="w-full text-sm"
                               />
                               <div className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 text-slate-800 dark:text-slate-200 text-sm overflow-x-auto whitespace-nowrap min-h-[38px] flex items-center">
                                 {choice.choice_detail ? renderTextWithMath(choice.choice_detail) : <span className="text-slate-400 text-xs">{t('question.preview')}</span>}

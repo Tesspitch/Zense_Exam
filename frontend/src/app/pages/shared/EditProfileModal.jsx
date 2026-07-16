@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import axios from 'axios';
+import api from '../../../utils/api';
 import { X, Save, Loader2 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 

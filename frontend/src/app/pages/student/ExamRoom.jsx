@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
+import api from '../../../utils/api';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { Clock, AlertTriangle, CheckCircle2, ChevronRight, ChevronLeft, Send, AlertCircle, Loader2 } from 'lucide-react';
@@ -83,7 +84,7 @@ const ExamRoom = () => {
     const fetchExam = async () => {
       try {
         const token = localStorage.getItem('token');
-        const res = await axios.get(`http://localhost:8000/api/student/exams/${examId}/take/`, {
+        const res = await api.get(`/api/student/exams/${examId}/take/`, {
           headers: { Authorization: `Bearer ${token}` }
         });
         setExamData(res.data);
@@ -132,7 +133,7 @@ const ExamRoom = () => {
   const submitExamData = async () => {
     try {
       const token = localStorage.getItem('token');
-      const res = await axios.post(`http://localhost:8000/api/student/exams/${examId}/submit/`, {
+      const res = await api.post(`/api/student/exams/${examId}/submit/`, {
         answers: answers
       }, {
         headers: { Authorization: `Bearer ${token}` }
@@ -166,7 +167,7 @@ const ExamRoom = () => {
           <AlertCircle size={48} className="text-red-500 mx-auto mb-4" />
           <h2 className="text-xl font-bold text-slate-800 dark:text-white mb-2">Error</h2>
           <p className="text-slate-600 dark:text-slate-400 mb-6">{error}</p>
-          <button onClick={() => navigate('/student/dashboard')} className="w-full py-3 bg-zense-navy dark:bg-blue-600 text-white rounded-xl font-semibold">Back to Dashboard</button>
+          <button onClick={() => navigate('/student/dashboard')} className="w-full py-3 bg-zense-navy dark:bg-blue-600 text-white rounded-xl font-semibold">{t('examRoom.returnDashboard', 'Back to Dashboard')}</button>
         </div>
       </div>
     );
@@ -180,7 +181,7 @@ const ExamRoom = () => {
           <div className="p-10 text-center border-b border-slate-100 dark:border-slate-800">
             <h1 className="text-3xl font-extrabold text-zense-navy dark:text-blue-400 mb-2">{examData.name}</h1>
             <p className="text-slate-500 dark:text-slate-400 font-medium tracking-wide">
-              {examData.subject_name || "Unknown Subject"}
+              {examData.subject_name || t('examRoom.unknownSubject', "Unknown Subject")}
             </p>
           </div>
           
@@ -312,19 +313,19 @@ const ExamRoom = () => {
           {status === 'submitting' ? (
             <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-12 text-center shadow-sm">
               <Loader2 className="animate-spin text-zense-navy dark:text-blue-500 mx-auto mb-4" size={48} />
-              <h2 className="text-xl font-bold text-slate-800 dark:text-white">Submitting your exam...</h2>
+              <h2 className="text-xl font-bold text-slate-800 dark:text-white">{t('examRoom.submitting', 'Submitting your exam...')}</h2>
             </div>
           ) : (
             <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-8 shadow-sm relative min-h-[500px] flex flex-col">
               {/* Question Header */}
               <div className="flex items-center gap-3 mb-6 pb-4 border-b border-slate-100 dark:border-slate-800">
                 <h2 className="text-lg font-bold text-slate-800 dark:text-white">
-                  Question {currentIndex + 1} of {questions.length}
+                  {t('examRoom.question', 'Question')} {currentIndex + 1} / {questions.length}
                 </h2>
                 {isAnswered(currentIndex) && (
                   <span className="px-2.5 py-1 bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 text-xs font-bold rounded-lg flex items-center gap-1">
                     <CheckCircle2 size={14} />
-                    Answered
+                    {t('examRoom.answered', 'Answered')}
                   </span>
                 )}
               </div>
@@ -332,7 +333,7 @@ const ExamRoom = () => {
               {/* Scenario Group Info (if applicable) */}
               {currentQ.group && (
                 <div className="mb-6 bg-blue-50 dark:bg-blue-900/10 border-l-4 border-zense-navy dark:border-blue-500 p-5 rounded-r-xl">
-                  <h4 className="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-2">Scenario</h4>
+                  <h4 className="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-2">{t('examRoom.scenario', 'Scenario')}</h4>
                   {currentQ.group.text && (
                     <div className="text-slate-800 dark:text-slate-200 text-sm leading-relaxed mb-3">
                       {renderTextWithMath(currentQ.group.text)}
@@ -346,9 +347,9 @@ const ExamRoom = () => {
 
               {/* Question Text */}
               <div className="mb-8 flex-1">
-                <div className="text-lg text-slate-800 dark:text-white mb-4 leading-relaxed font-medium">
+                <h3 className="text-lg font-medium text-slate-800 dark:text-slate-100 mb-4 leading-relaxed">
                   {renderTextWithMath(currentQ.text)}
-                </div>
+                </h3>
                 {currentQ.image_url && (
                   <img src={currentQ.image_url} alt="Question" className="max-w-full rounded-lg max-h-64 object-contain mb-6" />
                 )}
@@ -427,8 +428,8 @@ const ExamRoom = () => {
             <h3 className="text-2xl font-bold text-slate-800 dark:text-white mb-2">{t('examRoom.confirmSubmit', 'Submit Exam?')}</h3>
             <p className="text-slate-600 dark:text-slate-400 mb-6">
               {answeredCount < questions.length 
-                ? `You still have ${questions.length - answeredCount} unanswered questions. Are you sure you want to submit?`
-                : 'You have answered all questions. Are you ready to submit?'
+                ? t('examRoom.unansweredWarning', 'You still have {{count}} unanswered questions. Are you sure you want to submit?', { count: questions.length - answeredCount })
+                : t('examRoom.allAnsweredPrompt', 'You have answered all questions. Are you ready to submit?')
               }
             </p>
             <div className="flex gap-3">

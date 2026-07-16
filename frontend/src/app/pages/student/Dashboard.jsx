@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
+import api from '../../../utils/api';
 import { useNavigate } from 'react-router-dom';
 import { BookOpen, CheckCircle, Clock, TrendingUp, ArrowRight } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
@@ -15,7 +16,7 @@ const StudentDashboard = () => {
     const fetchDashboardData = async () => {
       try {
         const token = localStorage.getItem('token');
-        const response = await axios.get('http://localhost:8000/api/student/dashboard/', {
+        const response = await api.get('/api/student/dashboard/', {
           headers: { 'Authorization': `Bearer ${token}` }
         });
         setData(response.data);
@@ -54,7 +55,7 @@ const StudentDashboard = () => {
           onClick={() => window.location.reload()} 
           className="px-6 py-2 bg-zense-navy dark:bg-blue-600 text-white rounded-xl hover:bg-slate-800 dark:hover:bg-blue-700 transition-colors"
         >
-          ลองใหม่อีกครั้ง
+          {t('studentDashboard.tryAgain', 'Try Again')}
         </button>
       </div>
     );
@@ -66,9 +67,9 @@ const StudentDashboard = () => {
       {/* Section 1: Welcome Header */}
       <div>
         <h2 className="text-3xl font-bold text-slate-800 dark:text-white">
-          Welcome Back, {data?.student_name || 'Student'}!
+          {t('studentDashboard.welcomeBack', { name: data?.student_name || 'Student' })}
         </h2>
-        <p className="text-slate-500 dark:text-slate-400 mt-1">Here's your learning progress</p>
+        <p className="text-slate-500 dark:text-slate-400 mt-1">{t('studentDashboard.learningProgress', "Here's your learning progress")}</p>
       </div>
 
       {/* Section 2: Join Exam Room Action Card */}
@@ -80,8 +81,8 @@ const StudentDashboard = () => {
           <ArrowRight size={24} />
         </div>
         <div>
-          <h3 className="text-lg font-bold text-slate-800 dark:text-white">Join Exam Room</h3>
-          <p className="text-sm text-slate-500 dark:text-slate-400">Enter exam code to start your assessment</p>
+          <h3 className="text-lg font-bold text-slate-800 dark:text-white">{t('studentDashboard.joinExamRoom', 'Join Exam Room')}</h3>
+          <p className="text-sm text-slate-500 dark:text-slate-400">{t('studentDashboard.enterExamCode', 'Enter exam code to start your assessment')}</p>
         </div>
       </div>
 
@@ -89,35 +90,35 @@ const StudentDashboard = () => {
       {data?.stats ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           <StatCard 
-            title="Enrolled Courses" 
+            title={t('studentDashboard.enrolledCourses', 'Enrolled Courses')} 
             value={data.stats.enrolled_courses ?? '-'} 
             icon={<BookOpen size={20} className="text-blue-500"/>} 
           />
           <StatCard 
-            title="Completed Exams" 
+            title={t('studentDashboard.completedExams', 'Completed Exams')} 
             value={data.stats.completed_exams ?? '-'} 
             icon={<CheckCircle size={20} className="text-emerald-500"/>} 
           />
           <StatCard 
-            title="Pending Exams" 
+            title={t('studentDashboard.pendingExams', 'Pending Exams')} 
             value={data.stats.pending_exams ?? '-'} 
             icon={<Clock size={20} className="text-amber-500"/>} 
           />
           <StatCard 
-            title="Average Score" 
+            title={t('studentDashboard.averageScore', 'Average Score')} 
             value={data.stats.average_score ? `${data.stats.average_score}%` : '-'} 
             icon={<TrendingUp size={20} className="text-indigo-500"/>} 
           />
         </div>
       ) : (
         <div className="py-8 text-center text-slate-400 dark:text-slate-500 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-dashed border-slate-200 dark:border-slate-700">
-          ไม่สามารถดึงข้อมูลสถิติได้ในขณะนี้
+          {t('studentDashboard.errorFetching', 'Unable to fetch statistics at this time')}
         </div>
       )}
 
       {/* Section 4: Recent Scores */}
       <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl p-6 shadow-sm">
-        <h3 className="text-lg font-bold text-slate-800 dark:text-white mb-6">Recent Scores</h3>
+        <h3 className="text-lg font-bold text-slate-800 dark:text-white mb-6">{t('studentDashboard.recentResults', 'Recent Scores')}</h3>
         
         {data?.recent_scores && data.recent_scores.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -126,10 +127,10 @@ const StudentDashboard = () => {
                 <div className="flex justify-between items-start mb-4">
                   <div className="overflow-hidden">
                     <h4 className="font-bold text-slate-800 dark:text-white truncate pr-2">
-                      {score.exam_name || 'ไม่มีชื่อ'}
+                      {score.exam_name || t('studentDashboard.noName', 'No name')}
                     </h4>
                     <p className="text-xs text-slate-400 dark:text-slate-500 mt-1 flex items-center gap-1">
-                      <Clock size={12} /> {score.date || 'ไม่ระบุวันที่'}
+                      <Clock size={12} /> {score.date || t('studentDashboard.noDate', 'No date')}
                     </p>
                   </div>
                   <div className="text-right min-w-[60px]">
@@ -139,7 +140,7 @@ const StudentDashboard = () => {
                     }`}>
                       {score.percentage ?? score.score ?? '-'}%
                     </span>
-                    <p className="text-[10px] text-slate-400 dark:text-slate-500 font-medium uppercase tracking-wider">Score</p>
+                    <p className="text-[10px] text-slate-400 dark:text-slate-500 font-medium uppercase tracking-wider">{t('exam.score', 'Score')}</p>
                   </div>
                 </div>
               </div>
@@ -147,7 +148,7 @@ const StudentDashboard = () => {
           </div>
         ) : (
           <div className="py-12 text-center text-slate-400 dark:text-slate-500 text-sm bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-dashed border-slate-200 dark:border-slate-700">
-            คุณยังไม่มีประวัติการทำข้อสอบในขณะนี้
+            {t('studentDashboard.noRecentResults', 'You have no recent exam records at this time.')}
           </div>
         )}
       </div>

@@ -13,6 +13,7 @@ urlpatterns = [
         path('student/join-exam/', join_exam_views.join_exam, name='join_exam_student_alias'),
         path('student/exams/<str:exam_id>/take/', student_exam_views.take_exam, name='take_exam'),
         path('student/exams/<str:exam_id>/submit/', student_exam_views.submit_exam, name='submit_exam'),
+        path('student/results-page/', student_views.get_student_results_page, name='student_results_page'),
         path('student/profile/', profile_views.student_profile_api), 
         
         path('teacher/dashboard/', teacher_views.get_teacher_dashboard, name='teacher_dashboard'),
