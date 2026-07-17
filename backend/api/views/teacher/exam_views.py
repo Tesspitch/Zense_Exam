@@ -66,7 +66,14 @@ def teacher_exams(request):
                 hard = 0
                 sources = set()
                 total_questions = 0
-                description = exam_set.exam_set_detail if exam_set else 'No description'
+                raw_desc = exam_set.exam_set_detail if exam_set else ''
+                desc_text = raw_desc
+                try:
+                    parsed_desc = json.loads(raw_desc)
+                    desc_text = parsed_desc.get('description', raw_desc)
+                except:
+                    pass
+                description = desc_text if desc_text else 'No description'
                 
                 if exam_set:
                     details_set = detail_exam_set.objects.filter(exam_set_id=exam_set).select_related('qt_id', 'qt_id__chap_id', 'qt_id__chap_id__sj_id')
