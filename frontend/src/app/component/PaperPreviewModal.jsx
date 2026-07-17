@@ -4,6 +4,25 @@ import { X, Printer, FileDown, Columns } from 'lucide-react';
 import { renderTextWithMath } from './QuestionComponents';
 import api from '../../utils/api';
 
+function stringToSeed(str) {
+  if (!str) return 0;
+  let h = 1779033703 ^ str.length;
+  for (let i = 0; i < str.length; i++) {
+      h = Math.imul(h ^ str.charCodeAt(i), 3432918353);
+      h = h << 13 | h >>> 19;
+  }
+  return h;
+}
+
+function mulberry32(a) {
+  return function() {
+    var t = a += 0x6D2B79F5;
+    t = Math.imul(t ^ t >>> 15, t | 1);
+    t ^= t + Math.imul(t ^ t >>> 7, t | 61);
+    return ((t ^ t >>> 14) >>> 0) / 4294967296;
+  }
+}
+
 // We use html-docx-js via CDN (window.htmlDocx)
 
 // A4 standard at 96 DPI (CSS Pixels)
@@ -33,51 +52,54 @@ const PaperPreviewModal = ({
   const [semester, setSemester] = useState('');
   const [academicYear, setAcademicYear] = useState('');
 
+  const numSets = examData?.num_sets || 1;
+  const [currentSet, setCurrentSet] = useState(1);
+
   const sortedQuestions = useMemo(() => {
     if (!examData?.questions) return [];
 
     // Group questions by scenario (group.id) to prevent identical scenarios from being split
+    const blocks = [];
     const grouped = {};
-    const noGroup = [];
-
+    
     examData.questions.forEach(q => {
       if (!q.group) {
-        noGroup.push(q);
+        blocks.push({ type: 'single', id: q.id, items: [q] });
       } else {
         if (!grouped[q.group.id]) {
-          grouped[q.group.id] = [];
+          grouped[q.group.id] = { type: 'group', id: q.group.id, items: [] };
+          blocks.push(grouped[q.group.id]);
         }
-        grouped[q.group.id].push(q);
+        grouped[q.group.id].items.push(q);
       }
     });
 
+    // Shuffle blocks using a seeded randomizer so Set X is always consistent
+    if (examData.id && numSets > 1) {
+       const seedBase = stringToSeed(examData.id) + currentSet;
+       const random = mulberry32(seedBase);
+       for (let i = blocks.length - 1; i > 0; i--) {
+           const j = Math.floor(random() * (i + 1));
+           [blocks[i], blocks[j]] = [blocks[j], blocks[i]];
+       }
+    }
+
     const result = [];
-    const seenGroups = new Set();
-    const groupRanges = {}; // Map of groupId to { start, end }
-
-    // First pass to determine ranges in the final array
     let currentIndex = 1;
-
-    examData.questions.forEach(q => {
-      if (!q.group) {
-        result.push(q);
+    
+    blocks.forEach(block => {
+      if (block.type === 'single') {
+        result.push(block.items[0]);
         currentIndex++;
-      } else if (!seenGroups.has(q.group.id)) {
-        seenGroups.add(q.group.id);
-        const groupQ = grouped[q.group.id];
-
-        // Record range
-        groupRanges[q.group.id] = {
+      } else {
+        const groupRanges = {
           start: currentIndex,
-          end: currentIndex + groupQ.length - 1
+          end: currentIndex + block.items.length - 1
         };
-
-        // Add all questions for this group
-        groupQ.forEach(gq => {
-          // Attach range text to the first question of the group so we can render it
+        block.items.forEach(gq => {
           result.push({
             ...gq,
-            _groupRange: groupRanges[q.group.id]
+            _groupRange: groupRanges
           });
           currentIndex++;
         });
@@ -85,7 +107,7 @@ const PaperPreviewModal = ({
     });
 
     return result;
-  }, [examData?.questions]);
+  }, [examData?.questions, examData?.id, numSets, currentSet]);
 
   const [courseCode, setCourseCode] = useState(() => {
     return examData?.subjects?.length > 0 ? examData.subjects.map(s => s.id).join(', ') : '';
@@ -598,6 +620,23 @@ const PaperPreviewModal = ({
                 <Columns size={14} /> 2
               </button>
             </div>
+            
+            {numSets > 1 && (
+              <>
+                <div className="h-6 w-px bg-slate-300 dark:bg-slate-600 mx-2"></div>
+                <div className="flex bg-white dark:bg-slate-900 rounded-lg p-1 border border-slate-200 dark:border-slate-700">
+                  <select
+                    value={currentSet}
+                    onChange={(e) => setCurrentSet(Number(e.target.value))}
+                    className="bg-transparent text-sm font-medium px-2 py-1 text-slate-700 dark:text-slate-300 outline-none cursor-pointer"
+                  >
+                    {Array.from({ length: numSets }).map((_, i) => (
+                      <option key={i+1} value={i+1}>ชุดที่ {i+1}</option>
+                    ))}
+                  </select>
+                </div>
+              </>
+            )}
           </div>
 
           <div className="flex items-center gap-3">

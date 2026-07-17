@@ -131,7 +131,7 @@ const ExamTeacher = () => {
     setModalForm({
       name: '', description: '', exam_type: 'online',
       date_exam: '', time_start: '', time_end: '',
-      easy_count: 0, medium_count: 0, hard_count: 0, duration: 0
+      easy_count: 0, medium_count: 0, hard_count: 0, duration: 0, num_sets: 1
     });
     setSelectedCourses([]);
     setAvailableCounts({ easy: 0, medium: 0, hard: 0 });
@@ -192,6 +192,7 @@ const ExamTeacher = () => {
         medium_count: Number(modalForm.medium_count),
         hard_count: Number(modalForm.hard_count),
         duration: Number(modalForm.duration),
+        num_sets: Number(modalForm.num_sets) || 1,
         date_exam: modalForm.exam_type === 'online' ? modalForm.date_exam : null,
         time_start: modalForm.exam_type === 'online' ? modalForm.time_start : null,
         time_end: modalForm.exam_type === 'online' ? modalForm.time_end : null
@@ -579,6 +580,21 @@ const ExamTeacher = () => {
                   placeholder={t('exam.descriptionPlaceholder', 'Brief description of the exam')}
                   className="w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50"
                 ></textarea>
+              </div>
+
+              {/* Number of Sets */}
+              <div>
+                <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">จำนวนชุดข้อสอบ (Number of Sets)</label>
+                <input
+                  type="number"
+                  name="num_sets"
+                  min="1"
+                  max="10"
+                  value={modalForm.num_sets}
+                  onChange={handleModalInput}
+                  className="w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50"
+                />
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">แต่ละชุดข้อสอบจะสลับข้ออัตโนมัติเมื่อดูในหน้า Preview (สร้างได้สูงสุด 10 ชุด)</p>
               </div>
 
               {/* Exam Type */}

@@ -155,13 +155,18 @@ def teacher_exams(request):
             selected_hard = random.sample(hard_pool, hard_count) if hard_count > 0 else []
             selected_questions = selected_easy + selected_medium + selected_hard
 
+            exam_set_detail_content = json.dumps({
+                "description": description,
+                "num_sets": int(data.get("num_sets", 1))
+            })
+
             # 1. Create Exam_set
             exam_set_id = str(uuid.uuid4())[:15]
             new_exam_set = Exam_set.objects.create(
                 exam_set_id=exam_set_id,
                 teacher_id=teacher,
                 exam_set_header=name,
-                exam_set_detail=description
+                exam_set_detail=exam_set_detail_content
             )
 
             # 2. Create detail_exam_set (Link selected questions)
@@ -314,11 +319,22 @@ def teacher_exam_detail(request, exam_id):
                             'choices': choices
                         })
 
+            raw_desc = exam.exam_set_id.exam_set_detail if exam.exam_set_id else ''
+            desc_text = raw_desc
+            num_sets = 1
+            try:
+                parsed_desc = json.loads(raw_desc)
+                desc_text = parsed_desc.get('description', raw_desc)
+                num_sets = parsed_desc.get('num_sets', 1)
+            except:
+                pass
+
             return JsonResponse({
                 'id': exam.online_exam_id,
                 'name': exam.online_exam_name,
                 'password': exam.online_exam_pass,
-                'description': exam.exam_set_id.exam_set_detail if exam.exam_set_id else '',
+                'description': desc_text,
+                'num_sets': num_sets,
                 'exam_type': 'online' if exam.online_exam_is_active else 'paper',
                 'date_exam': date_str,
                 'time_start': start_str,
@@ -335,7 +351,19 @@ def teacher_exam_detail(request, exam_id):
             exam.save()
 
             if exam.exam_set_id:
-                exam.exam_set_id.exam_set_detail = data.get('description', exam.exam_set_id.exam_set_detail)
+                raw_desc = exam.exam_set_id.exam_set_detail
+                num_sets = 1
+                try:
+                    parsed_desc = json.loads(raw_desc)
+                    num_sets = parsed_desc.get('num_sets', 1)
+                except:
+                    pass
+                
+                updated_desc = {
+                    "description": data.get('description', ''),
+                    "num_sets": num_sets
+                }
+                exam.exam_set_id.exam_set_detail = json.dumps(updated_desc)
                 exam.exam_set_id.save()
 
             date_str = data.get('date_exam')
