@@ -277,11 +277,20 @@ def teacher_exam_detail(request, exam_id):
 
             # Get questions
             questions = []
+            subjects = []
             if exam.exam_set_id:
-                details_set = detail_exam_set.objects.filter(exam_set_id=exam.exam_set_id).order_by('qt_order').select_related('qt_id')
+                details_set = detail_exam_set.objects.filter(exam_set_id=exam.exam_set_id).order_by('qt_order').select_related('qt_id', 'qt_id__chap_id', 'qt_id__chap_id__sj_id')
                 for d_set in details_set:
                     q = d_set.qt_id
                     if q:
+                        if q.chap_id and q.chap_id.sj_id:
+                            subj = q.chap_id.sj_id
+                            if not any(s['id'] == subj.sj_id for s in subjects):
+                                subjects.append({
+                                    'id': subj.sj_id,
+                                    'name': subj.sj_name
+                                })
+                        
                         group_info = None
                         if q.group_id:
                             group_info = {
@@ -315,6 +324,7 @@ def teacher_exam_detail(request, exam_id):
                 'time_start': start_str,
                 'time_end': end_str,
                 'duration': duration,
+                'subjects': subjects,
                 'questions': questions
             }, status=200)
 
