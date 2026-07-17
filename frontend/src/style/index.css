@@ -1,48 +1,82 @@
-
 @import "tailwindcss";
 
 @theme {
   /* กำหนดสีหลักของ ZenseExam ไว้ใช้ซ้ำได้ทั่วโปรเจกต์ */
   --color-zense-navy: #1a3673;
   --color-zense-light: #f0f4f9;
-  
+
   /* ปรับแต่งความโค้งมนที่เป็นเอกลักษณ์ */
   --radius-zense: 2.5rem;
 }
 
+@font-face {
+  font-family: 'TH SarabunPSK';
+  src: url('/fonts/THSarabun.ttf') format('truetype');
+  font-weight: normal;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: 'TH SarabunPSK';
+  src: url('/fonts/THSarabun Bold.ttf') format('truetype');
+  font-weight: bold;
+  font-style: normal;
+}
+
+
 @custom-variant dark (&:is(.dark *));
 
 @layer components {
+
   /* สร้าง Class แยกสำหรับการคำนวณ Layout ที่ซับซ้อน */
   .input-field {
-    @apply w-full px-5 py-3.5 bg-[#f8faff] border border-slate-100 rounded-xl 
-           focus:ring-2 focus:ring-blue-500 focus:bg-white outline-none 
-           transition-all text-sm;
+    @apply w-full px-5 py-3.5 bg-[#f8faff] border border-slate-100 rounded-xl focus:ring-2 focus:ring-blue-500 focus:bg-white outline-none transition-all text-sm;
   }
 
   .btn-primary {
-    @apply w-full bg-zense-navy hover:bg-[#152c5e] text-white font-bold 
-           py-4 rounded-xl shadow-lg shadow-blue-900/10 transition-all 
-           mt-4 active:scale-[0.99];
+    @apply w-full bg-zense-navy hover:bg-[#152c5e] text-white font-bold py-4 rounded-xl shadow-lg shadow-blue-900/10 transition-all mt-4 active:scale-[0.99];
   }
 
   /* Role switch animation: small pop + lift for selected tab */
   @keyframes roleSwitch {
-    0% { transform: translateY(0) scale(1); }
-    30% { transform: translateY(-6px) scale(1.03); }
-    100% { transform: translateY(0) scale(1); }
+    0% {
+      transform: translateY(0) scale(1);
+    }
+
+    30% {
+      transform: translateY(-6px) scale(1.03);
+    }
+
+    100% {
+      transform: translateY(0) scale(1);
+    }
   }
 
   .role-animate {
-    animation: roleSwitch 420ms cubic-bezier(.2,.9,.3,1);
+    animation: roleSwitch 420ms cubic-bezier(.2, .9, .3, 1);
   }
 
   /* Brief background flash to indicate role selection */
   @keyframes roleFlash {
-    0% { background-color: transparent; transform: scale(1); }
-    25% { background-color: #dbefff; transform: scale(1.02); }
-    60% { background-color: #dbefff; transform: scale(1.01); }
-    100% { background-color: transparent; transform: scale(1); }
+    0% {
+      background-color: transparent;
+      transform: scale(1);
+    }
+
+    25% {
+      background-color: #dbefff;
+      transform: scale(1.02);
+    }
+
+    60% {
+      background-color: #dbefff;
+      transform: scale(1.01);
+    }
+
+    100% {
+      background-color: transparent;
+      transform: scale(1);
+    }
   }
 
   .role-flash {
@@ -51,10 +85,25 @@
 
   /* Small toast that appears when role changes */
   @keyframes roleToastFade {
-    0% { opacity: 0; transform: translateY(6px); }
-    10% { opacity: 1; transform: translateY(0); }
-    90% { opacity: 1; transform: translateY(0); }
-    100% { opacity: 0; transform: translateY(-6px); }
+    0% {
+      opacity: 0;
+      transform: translateY(6px);
+    }
+
+    10% {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    90% {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    100% {
+      opacity: 0;
+      transform: translateY(-6px);
+    }
   }
 
   .role-toast {
@@ -67,12 +116,14 @@
     body {
       background: white !important;
     }
+
     body * {
       visibility: hidden;
     }
-    
+
     /* Reset the modal container so it doesn't clip content or force single page */
-    .print-wrapper, .print-modal-inner {
+    .print-wrapper,
+    .print-modal-inner {
       position: absolute !important;
       left: 0 !important;
       top: 0 !important;
@@ -86,10 +137,11 @@
       transform: none !important;
     }
 
-    .print-area, .print-area * {
+    .print-area,
+    .print-area * {
       visibility: visible;
     }
-    
+
     .print-area {
       position: relative !important;
       left: 0 !important;
@@ -104,7 +156,7 @@
       color: black !important;
       overflow: visible !important;
     }
-    
+
     .hide-on-print {
       display: none !important;
     }
@@ -116,27 +168,86 @@
   .quill-content p {
     margin-bottom: 0.2em;
   }
-  .quill-content strong, .quill-content b {
+
+  .quill-content strong,
+  .quill-content b {
     font-weight: 700;
   }
-  .quill-content em, .quill-content i {
+
+  .quill-content em,
+  .quill-content i {
     font-style: italic;
   }
+
   .quill-content u {
     text-decoration: underline;
   }
+
   .quill-content s {
     text-decoration: line-through;
   }
-  .quill-content h1 { font-size: 2em; font-weight: bold; margin-bottom: 0.5em; }
-  .quill-content h2 { font-size: 1.5em; font-weight: bold; margin-bottom: 0.5em; }
-  .quill-content h3 { font-size: 1.17em; font-weight: bold; margin-bottom: 0.5em; }
-  .quill-content h4 { font-size: 1em; font-weight: bold; margin-bottom: 0.5em; }
-  .quill-content h5 { font-size: 0.83em; font-weight: bold; margin-bottom: 0.5em; }
-  .quill-content h6 { font-size: 0.67em; font-weight: bold; margin-bottom: 0.5em; }
-  .quill-content ul { list-style-type: disc; padding-left: 1.5em; margin-bottom: 0.5em; }
-  .quill-content ol { list-style-type: decimal; padding-left: 1.5em; margin-bottom: 0.5em; }
-  .quill-content li { margin-bottom: 0.2em; }
-  .quill-content blockquote { border-left: 4px solid #ccc; padding-left: 1em; color: #666; margin-bottom: 0.5em; }
-  .dark .quill-content blockquote { border-left-color: #475569; color: #94a3b8; }
+
+  .quill-content h1 {
+    font-size: 2em;
+    font-weight: bold;
+    margin-bottom: 0.5em;
+  }
+
+  .quill-content h2 {
+    font-size: 1.5em;
+    font-weight: bold;
+    margin-bottom: 0.5em;
+  }
+
+  .quill-content h3 {
+    font-size: 1.17em;
+    font-weight: bold;
+    margin-bottom: 0.5em;
+  }
+
+  .quill-content h4 {
+    font-size: 1em;
+    font-weight: bold;
+    margin-bottom: 0.5em;
+  }
+
+  .quill-content h5 {
+    font-size: 0.83em;
+    font-weight: bold;
+    margin-bottom: 0.5em;
+  }
+
+  .quill-content h6 {
+    font-size: 0.67em;
+    font-weight: bold;
+    margin-bottom: 0.5em;
+  }
+
+  .quill-content ul {
+    list-style-type: disc;
+    padding-left: 1.5em;
+    margin-bottom: 0.5em;
+  }
+
+  .quill-content ol {
+    list-style-type: decimal;
+    padding-left: 1.5em;
+    margin-bottom: 0.5em;
+  }
+
+  .quill-content li {
+    margin-bottom: 0.2em;
+  }
+
+  .quill-content blockquote {
+    border-left: 4px solid #ccc;
+    padding-left: 1em;
+    color: #666;
+    margin-bottom: 0.5em;
+  }
+
+  .dark .quill-content blockquote {
+    border-left-color: #475569;
+    color: #94a3b8;
+  }
 }

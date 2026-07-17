@@ -1,7 +1,8 @@
-import React, { useRef, useState, useEffect } from 'react';
+import React, { useRef, useState, useEffect, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { X, Printer, FileDown, Columns } from 'lucide-react';
 import { renderTextWithMath } from './QuestionComponents';
+import api from '../../utils/api';
 
 // We use html-docx-js via CDN (window.htmlDocx)
 
@@ -14,15 +15,15 @@ const CONTENT_HEIGHT = PAGE_HEIGHT - (MARGIN * 2); // 931
 const GAP = 26; // gap between columns in 2-column mode
 const COLUMN_WIDTH = (CONTENT_WIDTH - GAP) / 2; // 288
 
-const PaperPreviewModal = ({ 
-  isOpen, 
-  onClose, 
-  examData, 
-  initialFormat = 'pdf', 
-  initialColumns = 1 
+const PaperPreviewModal = ({
+  isOpen,
+  onClose,
+  examData,
+  initialFormat = 'pdf',
+  initialColumns = 1
 }) => {
   const { t } = useTranslation();
-  
+
   const [format, setFormat] = useState(initialFormat);
   const [columns, setColumns] = useState(initialColumns);
 
@@ -31,7 +32,61 @@ const PaperPreviewModal = ({
   const [faculty, setFaculty] = useState('สำนักศึกษาทั่วไป (Office of General Education)');
   const [semester, setSemester] = useState('');
   const [academicYear, setAcademicYear] = useState('');
-  
+
+  const sortedQuestions = useMemo(() => {
+    if (!examData?.questions) return [];
+
+    // Group questions by scenario (group.id) to prevent identical scenarios from being split
+    const grouped = {};
+    const noGroup = [];
+
+    examData.questions.forEach(q => {
+      if (!q.group) {
+        noGroup.push(q);
+      } else {
+        if (!grouped[q.group.id]) {
+          grouped[q.group.id] = [];
+        }
+        grouped[q.group.id].push(q);
+      }
+    });
+
+    const result = [];
+    const seenGroups = new Set();
+    const groupRanges = {}; // Map of groupId to { start, end }
+
+    // First pass to determine ranges in the final array
+    let currentIndex = 1;
+
+    examData.questions.forEach(q => {
+      if (!q.group) {
+        result.push(q);
+        currentIndex++;
+      } else if (!seenGroups.has(q.group.id)) {
+        seenGroups.add(q.group.id);
+        const groupQ = grouped[q.group.id];
+        
+        // Record range
+        groupRanges[q.group.id] = {
+          start: currentIndex,
+          end: currentIndex + groupQ.length - 1
+        };
+        
+        // Add all questions for this group
+        groupQ.forEach(gq => {
+          // Attach range text to the first question of the group so we can render it
+          result.push({
+             ...gq, 
+             _groupRange: groupRanges[q.group.id]
+          });
+          currentIndex++;
+        });
+      }
+    });
+
+    return result;
+  }, [examData?.questions]);
+
   const [courseCode, setCourseCode] = useState(() => {
     return examData?.subjects?.length > 0 ? examData.subjects.map(s => s.id).join(', ') : '';
   });
@@ -51,77 +106,151 @@ const PaperPreviewModal = ({
   const printRef = useRef(null);
   const [isMeasuring, setIsMeasuring] = useState(true);
   const [paginatedPages, setPaginatedPages] = useState([]);
-  
+
   // Calculate pagination whenever data or column setting changes
   useEffect(() => {
     if (!isOpen || !examData?.questions) return;
-    
+
     setIsMeasuring(true);
     setPaginatedPages([]);
-    
-    // Give the DOM a moment to render the hidden elements before measuring
-    const timer = setTimeout(() => {
-      if (!measureRef.current) return;
-      
-      const questionEls = Array.from(measureRef.current.children);
-      
-      let pages = [];
-      let currentCols = columns === 1 ? [[]] : [[], []];
-      let currentHeight = 0;
-      let currentColIdx = 0;
-      
-      questionEls.forEach((el, index) => {
-        const qObj = examData.questions[index];
-        // Get full height including margins
-        const style = window.getComputedStyle(el);
-        const marginTop = parseFloat(style.marginTop) || 0;
-        const marginBottom = parseFloat(style.marginBottom) || 0;
-        const totalH = el.getBoundingClientRect().height + marginTop + marginBottom;
 
-        if (currentHeight + totalH > CONTENT_HEIGHT) {
-          if (columns === 1 || currentColIdx === 1) {
-            // Push current page and start a new one
-            pages.push(currentCols);
-            currentCols = columns === 1 ? [[]] : [[], []];
-            currentColIdx = 0;
-            currentHeight = totalH;
-            currentCols[currentColIdx].push({ ...qObj, originalIndex: index });
+    let isCancelled = false;
+    let timer = null;
+
+    // Wait for custom fonts to load to ensure accurate height measurements
+    document.fonts.ready.then(() => {
+      if (isCancelled) return;
+
+      timer = setTimeout(() => {
+        if (isCancelled || !measureRef.current) return;
+
+        const questionEls = Array.from(measureRef.current.children);
+
+        let pages = [];
+        let currentCols = columns === 1 ? [[]] : [[], []];
+        let currentHeight = 0;
+        let currentColIdx = 0;
+
+        questionEls.forEach((el, index) => {
+          const qObj = sortedQuestions[index];
+          // Get full height including margins
+          const style = window.getComputedStyle(el);
+          const marginTop = parseFloat(style.marginTop) || 0;
+          const marginBottom = parseFloat(style.marginBottom) || 0;
+          const totalH = el.getBoundingClientRect().height + marginTop + marginBottom;
+
+          if (currentHeight + totalH > CONTENT_HEIGHT) {
+            if (columns === 1 || currentColIdx === 1) {
+              // Push current page and start a new one
+              pages.push(currentCols);
+              currentCols = columns === 1 ? [[]] : [[], []];
+              currentColIdx = 0;
+              currentHeight = totalH;
+              currentCols[currentColIdx].push({ ...qObj, originalIndex: index });
+            } else {
+              // Move to next column
+              currentColIdx = 1;
+              currentHeight = totalH;
+              currentCols[currentColIdx].push({ ...qObj, originalIndex: index });
+            }
           } else {
-            // Move to next column
-            currentColIdx = 1;
-            currentHeight = totalH;
+            currentHeight += totalH;
             currentCols[currentColIdx].push({ ...qObj, originalIndex: index });
           }
-        } else {
-          currentHeight += totalH;
-          currentCols[currentColIdx].push({ ...qObj, originalIndex: index });
+        });
+
+        // Push the last page
+        if (currentCols[0].length > 0 || (columns === 2 && currentCols[1].length > 0)) {
+          pages.push(currentCols);
         }
-      });
-      
-      // Push the last page
-      if (currentCols[0].length > 0 || (columns === 2 && currentCols[1].length > 0)) {
-         pages.push(currentCols);
-      }
-      
-      setPaginatedPages(pages);
-      setIsMeasuring(false);
-    }, 100);
-    
-    return () => clearTimeout(timer);
+
+        setPaginatedPages(pages);
+        setIsMeasuring(false);
+      }, 100);
+    });
+
+    return () => {
+      isCancelled = true;
+      if (timer) clearTimeout(timer);
+    };
   }, [isOpen, examData, columns]);
 
   if (!isOpen || !examData) return null;
 
   const handlePrintPdf = () => {
-    window.print();
+    if (!printRef.current) return;
+
+    const clone = printRef.current.cloneNode(true);
+
+    // Remove MathML
+    const mathmlElements = clone.querySelectorAll('.katex-mathml');
+    mathmlElements.forEach(el => el.remove());
+
+    const contentHtml = clone.outerHTML;
+
+    // Copy all styles from the parent document to ensure Tailwind works
+    const styles = Array.from(document.querySelectorAll('style, link[rel="stylesheet"]'))
+      .map(node => node.outerHTML)
+      .join('');
+
+    const fullHtml = `
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <meta charset="utf-8">
+          <title>${examData.name || 'Exam Paper'}</title>
+          ${styles}
+          <style>
+            body { font-family: "TH SarabunPSK", "Sarabun", "TH Sarabun New", sans-serif; font-size: 18px; line-height: 1.5; margin: 0; padding: 0; background: white; color: black; }
+            .a4-page { width: ${PAGE_WIDTH}px; height: ${PAGE_HEIGHT}px; box-sizing: border-box; padding: ${MARGIN}px; page-break-after: always; background: white; margin: 0 auto; }
+            .question-block { margin-bottom: 24px; page-break-inside: avoid; }
+            .scenario-block { margin-bottom: 12px; padding: 12px; border: 2px solid #ccc; background-color: #f9fafb; border-radius: 8px; }
+            @page { size: A4 portrait; margin: 0; }
+            @media print {
+              html, body { width: 210mm; height: 297mm; }
+              body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+              .a4-page { 
+                box-shadow: none !important; 
+                border: none !important; 
+                margin: 0 !important; 
+                width: 100% !important; 
+                height: 100% !important; 
+                max-height: 297mm !important; 
+                page-break-after: always;
+              }
+            }
+          </style>
+        </head>
+        <body>
+          ${contentHtml}
+          <script>
+            window.onload = () => {
+              // Give styles a moment to apply, especially if loading via external link
+              setTimeout(() => {
+                window.print();
+                setTimeout(() => { window.close(); }, 500);
+              }, 300);
+            };
+          </script>
+        </body>
+      </html>
+    `;
+
+    const printWindow = window.open('', '_blank');
+    if (printWindow) {
+      printWindow.document.write(fullHtml);
+      printWindow.document.close();
+    } else {
+      alert('Please allow popups for this website to print the PDF.');
+    }
   };
 
   const handleExportDocx = () => {
     if (!printRef.current) return;
-    
+
     // Clone the print reference to manipulate it without affecting the UI
     const clone = printRef.current.cloneNode(true);
-    
+
     // Remove MathML as it causes corrupted/blank DOCX files in MS Word
     const mathmlElements = clone.querySelectorAll('.katex-mathml');
     mathmlElements.forEach(el => el.remove());
@@ -130,9 +259,128 @@ const PaperPreviewModal = ({
     const svgs = clone.querySelectorAll('svg');
     svgs.forEach(el => el.remove());
 
+    // --- DOCX Compatibility Fixes ---
+    // Word does not support Flexbox, so we convert flex layouts to tables.
+
+    // 1. Convert 2-column layout (.column-container) to table
+    const colContainers = clone.querySelectorAll('.column-container');
+    colContainers.forEach(container => {
+      const table = document.createElement('table');
+      table.style.width = '100%';
+      table.style.borderCollapse = 'collapse';
+      table.style.border = 'none';
+      const tr = document.createElement('tr');
+
+      const cols = Array.from(container.children);
+      cols.forEach((col, index) => {
+        const td = document.createElement('td');
+        td.style.width = `${100 / cols.length}%`;
+        td.style.verticalAlign = 'top';
+        if (index === 0 && cols.length > 1) td.style.paddingRight = '13px';
+        if (index === 1 && cols.length > 1) td.style.paddingLeft = '13px';
+
+        td.appendChild(col);
+        tr.appendChild(td);
+      });
+
+      table.appendChild(tr);
+      container.parentNode.replaceChild(table, container);
+    });
+
+    // 2. Convert fill lines (.items-baseline with .overflow-hidden dots) to table rows with dotted borders
+    const baselineFlexes = clone.querySelectorAll('.items-baseline');
+    baselineFlexes.forEach(container => {
+      const dotSpan = container.querySelector('.overflow-hidden');
+      if (dotSpan && dotSpan.textContent.includes('.....')) {
+        const labelSpan = container.querySelector('span:not(.overflow-hidden)');
+        const table = document.createElement('table');
+        table.style.width = '100%';
+        table.style.borderCollapse = 'collapse';
+        table.style.border = 'none';
+        const tr = document.createElement('tr');
+
+        const tdLabel = document.createElement('td');
+        tdLabel.style.width = '1%';
+        tdLabel.style.whiteSpace = 'nowrap';
+        tdLabel.innerHTML = labelSpan ? labelSpan.innerHTML : '';
+
+        const tdLine = document.createElement('td');
+        tdLine.style.borderBottom = '1px dotted black';
+        tdLine.style.width = '99%';
+
+        tr.appendChild(tdLabel);
+        tr.appendChild(tdLine);
+        table.appendChild(tr);
+
+        container.parentNode.replaceChild(table, container);
+      }
+    });
+
+    // 3. Convert .justify-between to table for cover page
+    const justifyBetweens = clone.querySelectorAll('.justify-between');
+    justifyBetweens.forEach(container => {
+      const table = document.createElement('table');
+      table.style.width = '100%';
+      table.style.borderCollapse = 'collapse';
+      table.style.border = 'none';
+      const tr = document.createElement('tr');
+
+      const children = Array.from(container.children);
+      children.forEach((child, index) => {
+        const td = document.createElement('td');
+        td.style.width = `${100 / children.length}%`;
+        td.style.verticalAlign = 'bottom';
+        if (index > 0) td.style.textAlign = 'right';
+
+        td.appendChild(child);
+        tr.appendChild(td);
+      });
+
+      table.appendChild(tr);
+      container.parentNode.replaceChild(table, container);
+    });
+
+    // 4. Align signature block to right
+    const justifyEnds = clone.querySelectorAll('.justify-end');
+    justifyEnds.forEach(container => {
+      container.style.textAlign = 'right';
+    });
+
+    // 5. Convert question text and choices (.flex.items-start) to tables to prevent line breaks
+    const flexItemsStarts = clone.querySelectorAll('.items-start');
+    flexItemsStarts.forEach(container => {
+      const children = Array.from(container.children);
+      if (children.length >= 2 && container.tagName.toLowerCase() !== 'table') {
+        const table = document.createElement('table');
+        table.style.width = '100%';
+        table.style.borderCollapse = 'collapse';
+        table.style.border = 'none';
+        const tr = document.createElement('tr');
+
+        children.forEach((child, index) => {
+          const td = document.createElement('td');
+          td.style.verticalAlign = 'top';
+
+          if (index === 0) {
+            td.style.width = '1%';
+            td.style.whiteSpace = 'nowrap';
+            td.style.paddingRight = '12px';
+          } else {
+            td.style.width = '99%';
+          }
+
+          td.appendChild(child);
+          tr.appendChild(td);
+        });
+
+        table.appendChild(tr);
+        container.parentNode.replaceChild(table, container);
+      }
+    });
+
     // Construct a full HTML document string including styles for the export
     const contentHtml = clone.innerHTML;
-    
+
     const fullHtml = `
       <!DOCTYPE html>
       <html>
@@ -140,7 +388,8 @@ const PaperPreviewModal = ({
           <meta charset="utf-8">
           <title>${examData.name}</title>
           <style>
-            body { font-family: "Sarabun", "TH Sarabun New", sans-serif; font-size: 24px; line-height: 1.5; }
+            body { font-family: "TH SarabunPSK", "Sarabun", "TH Sarabun New", sans-serif; font-size: 18px; line-height: 1.5; }
+            table, td { margin: 0; padding: 0; }
             .a4-page { width: 100%; page-break-after: always; padding: 50px; }
             .question-block { margin-bottom: 24px; page-break-inside: avoid; }
             .scenario-block { margin-bottom: 12px; padding: 12px; border: 2px solid #ccc; background-color: #f9fafb; border-radius: 8px; }
@@ -148,9 +397,6 @@ const PaperPreviewModal = ({
             .choice { margin-bottom: 8px; }
             img { max-width: 100%; height: auto; }
             .cover-page { page-break-after: always; text-align: center; }
-            .flex { display: flex; }
-            .justify-between { justify-content: space-between; }
-            .justify-end { justify-content: flex-end; }
             .text-center { text-align: center; }
             .text-left { text-align: left; }
             .mb-2 { margin-bottom: 8px; }
@@ -159,12 +405,8 @@ const PaperPreviewModal = ({
             .mb-8 { margin-bottom: 32px; }
             .mt-16 { margin-top: 64px; }
             .mt-20 { margin-top: 80px; }
-            .text-lg { font-size: 36px; }
-            .text-base { font-size: 24px; }
             .font-bold { font-weight: bold; }
             hr { border-top: 2px solid black; margin: 24px 0; }
-            .column-container { display: flex; gap: ${GAP}px; }
-            .column { flex: 1; }
           </style>
         </head>
         <body>
@@ -175,7 +417,7 @@ const PaperPreviewModal = ({
 
     try {
       const converted = window.htmlDocx.asBlob(fullHtml, { orientation: 'portrait', margins: { top: 1440, right: 1440, bottom: 1440, left: 1440 } });
-      
+
       // Trigger download
       const url = URL.createObjectURL(converted);
       const link = document.createElement('a');
@@ -200,19 +442,26 @@ const PaperPreviewModal = ({
   };
 
   const renderQuestionBlock = (q, idx) => {
-    const prevGroup = idx > 0 ? examData.questions[idx - 1].group?.id : null;
+    const prevGroup = idx > 0 ? sortedQuestions[idx - 1].group?.id : null;
     const showGroupHeader = q.group && q.group.id !== prevGroup;
 
     return (
       <div key={q.id} className="mb-6 break-inside-avoid question-block" style={{ pageBreakInside: 'avoid' }}>
         {showGroupHeader && (
           <div className="mb-3 p-3 border-2 border-gray-300 rounded bg-gray-50 scenario-block">
-            <h4 className="font-bold mb-2 uppercase">Scenario</h4>
+            <div className="flex justify-between items-center mb-2">
+              <h4 className="font-bold uppercase">Scenario</h4>
+              {q._groupRange && (
+                <span className="text-sm font-semibold text-blue-600 bg-blue-100 px-2 py-1 rounded">
+                  ใช้กับโจทย์ข้อ {q._groupRange.start} - {q._groupRange.end}
+                </span>
+              )}
+            </div>
             {q.group.text && <div className="mb-2">{renderTextWithMath(q.group.text)}</div>}
             {q.group.image_url && <img src={q.group.image_url} alt="Group" className="max-w-full h-auto mt-2" />}
           </div>
         )}
-        
+
         <div className="flex items-start gap-3 mb-2">
           <span className="font-bold whitespace-nowrap">{idx + 1}.</span>
           <div className="flex-1">
@@ -220,7 +469,7 @@ const PaperPreviewModal = ({
             {q.image_url && <img src={q.image_url} alt="Question" className="max-w-full h-auto mt-2 block" />}
           </div>
         </div>
-        
+
         <div className="pl-6 space-y-2 choices">
           {q.choices && q.choices.map((c, cIdx) => (
             <div key={c.id} className="flex items-start gap-2 choice">
@@ -236,64 +485,26 @@ const PaperPreviewModal = ({
   };
 
   return (
-    <div className="fixed inset-0 z-[200] flex items-center justify-center bg-slate-900/80 backdrop-blur-sm p-2 sm:p-4 print-wrapper">
-      
-      {/* CSS for printing A4 layout */}
-      <style dangerouslySetInnerHTML={{__html: `
-        @media print {
-          /* Reset everything for printing */
-          body, html { height: auto !important; overflow: visible !important; }
-          body * { visibility: hidden; }
-          .print-wrapper { 
-             position: absolute !important; 
-             inset: auto !important; 
-             left: 0 !important; 
-             top: 0 !important;
-             width: 100% !important; 
-             height: auto !important; 
-             background: transparent !important;
-             padding: 0 !important;
-             margin: 0 !important;
-             display: block !important;
-          }
-          .print-wrapper * { visibility: visible; }
-          .hide-on-print { display: none !important; }
-          .print-area { position: relative !important; width: 100%; display: block !important; }
-          .a4-page {
-             width: ${PAGE_WIDTH}px !important; 
-             height: ${PAGE_HEIGHT}px !important; 
-             margin: 0 auto !important;
-             page-break-after: always !important;
-             page-break-inside: avoid !important;
-             box-shadow: none !important;
-             border: none !important;
-          }
-          @page {
-             size: A4 portrait;
-             margin: 0;
-          }
-        }
-      `}} />
+    <div className="fixed inset-0 z-[200] flex items-center justify-center bg-slate-900/80 backdrop-blur-sm p-2 sm:p-4">
+      <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl w-full max-w-[95vw] lg:max-w-[1200px] flex flex-col h-[95vh] border border-slate-200 dark:border-slate-700">
 
-      <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl w-full max-w-[95vw] lg:max-w-[1200px] flex flex-col h-[95vh] border border-slate-200 dark:border-slate-700 print-modal-inner hide-on-print">
-        
         {/* Header Controls */}
         <div className="flex items-center justify-between p-4 border-b border-slate-200 dark:border-slate-800 shrink-0 bg-slate-50 dark:bg-slate-800 rounded-t-2xl">
           <div className="flex items-center gap-4">
             <h2 className="text-xl font-bold text-slate-800 dark:text-white">
               {t('exam.paperPreview', 'Paper Preview')}
             </h2>
-            
+
             <div className="h-6 w-px bg-slate-300 dark:bg-slate-600 mx-2"></div>
-            
+
             <div className="flex bg-white dark:bg-slate-900 rounded-lg p-1 border border-slate-200 dark:border-slate-700">
-              <button 
+              <button
                 onClick={() => setFormat('pdf')}
                 className={`px-3 py-1 text-sm font-medium rounded-md transition-colors ${format === 'pdf' ? 'bg-red-50 text-red-600 dark:bg-red-900/30 dark:text-red-400' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'}`}
               >
                 PDF
               </button>
-              <button 
+              <button
                 onClick={() => setFormat('docx')}
                 className={`px-3 py-1 text-sm font-medium rounded-md transition-colors ${format === 'docx' ? 'bg-blue-50 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'}`}
               >
@@ -302,13 +513,13 @@ const PaperPreviewModal = ({
             </div>
 
             <div className="flex bg-white dark:bg-slate-900 rounded-lg p-1 border border-slate-200 dark:border-slate-700">
-              <button 
+              <button
                 onClick={() => setColumns(1)}
                 className={`px-3 py-1 text-sm font-medium rounded-md transition-colors flex items-center gap-1 ${columns === 1 ? 'bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-white' : 'text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-800/50'}`}
               >
                 <Columns size={14} className="opacity-50" /> 1
               </button>
-              <button 
+              <button
                 onClick={() => setColumns(2)}
                 className={`px-3 py-1 text-sm font-medium rounded-md transition-colors flex items-center gap-1 ${columns === 2 ? 'bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-white' : 'text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-800/50'}`}
               >
@@ -368,56 +579,69 @@ const PaperPreviewModal = ({
 
           {/* A4 Preview Area */}
           <div className="flex-1 overflow-y-auto bg-slate-200 dark:bg-slate-950 p-4 sm:p-8 custom-scrollbar flex justify-center items-start">
-            
+
             {/* Visual Scaling Wrapper for smaller screens */}
             <div className="transform-gpu origin-top scale-[0.6] sm:scale-[0.8] md:scale-90 lg:scale-100 transition-transform pb-20">
-              
+
               {/* HIDDEN MEASUREMENT CONTAINER */}
               {isMeasuring && (
-                <div style={{ position: 'absolute', visibility: 'hidden', zIndex: -1000, width: `${CONTENT_WIDTH}px`, fontFamily: '"Sarabun", "TH Sarabun New", sans-serif', fontSize: '24px' }}>
+                <div style={{ position: 'absolute', visibility: 'hidden', zIndex: -1000, width: `${CONTENT_WIDTH}px`, fontFamily: '"TH SarabunPSK", "Sarabun", "TH Sarabun New", sans-serif', fontSize: '18px' }}>
                   <div ref={measureRef} style={{ width: columns === 1 ? '100%' : `${COLUMN_WIDTH}px` }}>
-                    {examData.questions && examData.questions.map((q, idx) => renderQuestionBlock(q, idx))}
+                    {sortedQuestions && sortedQuestions.map((q, idx) => renderQuestionBlock(q, idx))}
                   </div>
                 </div>
               )}
 
               {/* PRINTABLE AREA */}
-              <div ref={printRef} className="print-area font-sarabun text-black" style={{ fontFamily: '"Sarabun", "TH Sarabun New", sans-serif', fontSize: '24px', color: 'black' }}>
-                
+              <div ref={printRef} className="print-area text-black" style={{ fontFamily: '"TH SarabunPSK", "Sarabun", "TH Sarabun New", sans-serif', fontSize: '18px', color: 'black' }}>
+
                 {/* 1. Cover Page */}
                 <div className="a4-page cover-page bg-white shadow-xl mx-auto mb-8 text-left" style={{ width: `${PAGE_WIDTH}px`, height: `${PAGE_HEIGHT}px`, padding: `${MARGIN}px`, boxSizing: 'border-box' }}>
                   <div className="text-center mb-6">
                     <div className="font-bold" style={{ fontSize: '36px', marginBottom: '8px' }}>{university || '.........................................................'}</div>
                     <div style={{ fontSize: '28px' }}>{faculty || '.........................................................'}</div>
                   </div>
-                  
+
                   <div className="flex justify-between mb-4 text-base">
                     <div>ภาคการศึกษาที่ {semester || '.........'} ปีการศึกษา {academicYear || '.........'}</div>
                   </div>
-                  
+
                   <div className="flex justify-between mb-4 text-base">
                     <div>รหัสวิชา : {courseCode || '.........'}</div>
                     <div>ชื่อรายวิชา : {courseName || '...................................................'}</div>
                   </div>
                   <hr className="border-t-2 border-black mb-6" />
-                  
-                  <div className="mb-4 text-base">
-                    ชื่อ - นามสกุล ....................................................................................................................................
+
+                  <div className="flex items-baseline mb-4 text-base w-full">
+                    <span className="whitespace-nowrap">ชื่อ - นามสกุล&nbsp;</span>
+                    <span className="flex-1 overflow-hidden text-clip whitespace-nowrap">.......................................................................................................................................................................................................................</span>
                   </div>
-                  <div className="flex justify-between mb-4 text-base">
-                    <div>รหัสประจำตัวนิสิต................................................................</div>
-                    <div>กลุ่มเรียน .....................................................</div>
+                  <div className="flex justify-between mb-4 text-base gap-8">
+                    <div className="flex items-baseline flex-1">
+                      <span className="whitespace-nowrap">รหัสประจำตัวนิสิต&nbsp;</span>
+                      <span className="flex-1 overflow-hidden text-clip whitespace-nowrap">...........................................</span>
+                    </div>
+                    <div className="flex items-baseline w-[40%]">
+                      <span className="whitespace-nowrap">กลุ่มเรียน&nbsp;</span>
+                      <span className="flex-1 overflow-hidden text-clip whitespace-nowrap">.....................................................................................................................</span>
+                    </div>
                   </div>
-                  <div className="flex justify-between mb-6 text-base">
-                    <div>วันที่สอบ ........................................................................</div>
-                    <div>ห้องสอบ .....................................................</div>
+                  <div className="flex justify-between mb-6 text-base gap-8">
+                    <div className="flex items-baseline flex-1">
+                      <span className="whitespace-nowrap">วันที่สอบ&nbsp;</span>
+                      <span className="flex-1 overflow-hidden text-clip whitespace-nowrap">.......................................................</span>
+                    </div>
+                    <div className="flex items-baseline w-[40%]">
+                      <span className="whitespace-nowrap">ห้องสอบ&nbsp;</span>
+                      <span className="flex-1 overflow-hidden text-clip whitespace-nowrap">.........................................................................................</span>
+                    </div>
                   </div>
                   <hr className="border-t-2 border-black mb-6" />
-                  
+
                   <div className="text-base mb-6">
                     <div className="font-bold mb-3" style={{ fontSize: '28px' }}>คำชี้แจง</div>
                     <ol className="list-decimal pl-8 space-y-3" style={{ lineHeight: '1.6' }}>
-                      <li>ข้อสอบมีทั้งหมด {paginatedPages.length} หน้า จำนวน {examData.questions?.length || 0} ข้อ</li>
+                      <li>ข้อสอบมีทั้งหมด {paginatedPages.length} หน้า จำนวน {sortedQuestions?.length || 0} ข้อ</li>
                       <li>ให้นิสิตตรวจสอบความครบถ้วนของข้อสอบก่อนเริ่มทำ หากพบว่าข้อสอบไม่ครบหรือชำรุด ให้แจ้งกรรมการคุมสอบทันทีห้ามเปิดข้อสอบจนกว่าจะได้รับอนุญาตจากกรรมการคุมสอบ</li>
                       <li>ข้อสอบเป็น ข้อสอบปรนัยแบบเลือกตอบ (Multiple Choice) ให้เลือกคำตอบที่ถูกต้องที่สุดเพียง 1 คำตอบในแต่ละข้อ ห้ามนำเอกสารหรืออุปกรณ์สื่อสารเข้าห้องสอบ</li>
                       <li>เมื่อหมดเวลาสอบให้นิสิตส่งข้อสอบและกระดาษคำตอบ</li>
@@ -425,15 +649,18 @@ const PaperPreviewModal = ({
                       <li>ห้ามเปิดข้อสอบจนกว่าจะได้รับอนุญาตจากกรรมการคุมสอบ</li>
                     </ol>
                   </div>
-                  
-                  <div className="text-center font-bold" style={{ marginTop: '60px', marginBottom: '60px', fontSize: '28px' }}>
+
+                  <div className="text-center font-bold" style={{ marginTop: '20px', marginBottom: '20px', fontSize: '24px' }}>
                     ***ห้ามนำข้อสอบออกนอกห้องสอบโดยเด็ดขาด***
                   </div>
-                  
-                  <div className="flex justify-end text-base mt-12">
+
+                  <div className="flex justify-end text-base mt-8">
                     <div className="text-center">
                       <div className="mb-3">สำหรับกรรมการคุมสอบ</div>
-                      <div className="mb-2">ลงชื่อ...................................................</div>
+                      <div className="mb-2 whitespace-nowrap flex items-baseline">
+                        <span>ลงชื่อ</span>
+                        <span className="flex-1 overflow-hidden text-clip whitespace-nowrap">.....................................................................................</span>
+                      </div>
                       <div>(...................................................)</div>
                     </div>
                   </div>
@@ -442,7 +669,7 @@ const PaperPreviewModal = ({
                 {/* 2. Question Pages */}
                 {!isMeasuring && paginatedPages.map((pageCols, pIdx) => (
                   <div key={pIdx} className="a4-page question-page bg-white shadow-xl mx-auto mb-8 text-left" style={{ width: `${PAGE_WIDTH}px`, height: `${PAGE_HEIGHT}px`, padding: `${MARGIN}px`, boxSizing: 'border-box' }}>
-                    
+
                     {/* Header for question pages */}
                     <div className="flex justify-between items-center mb-6 text-gray-500 border-b border-gray-300 pb-2 text-sm">
                       <div>{courseCode} {courseName}</div>
@@ -458,7 +685,7 @@ const PaperPreviewModal = ({
                     </div>
                   </div>
                 ))}
-                
+
               </div>
             </div>
           </div>
