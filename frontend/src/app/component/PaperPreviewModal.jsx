@@ -139,7 +139,8 @@ const PaperPreviewModal = ({
           const marginBottom = parseFloat(style.marginBottom) || 0;
           const totalH = el.getBoundingClientRect().height + marginTop + marginBottom;
 
-          if (currentHeight + totalH > CONTENT_HEIGHT) {
+          // Add 80px safety buffer to ensure it doesn't overflow in MS Word DOCX rendering
+          if (currentHeight + totalH > CONTENT_HEIGHT - 80) {
             if (columns === 1 || currentColIdx === 1) {
               // Push current page and start a new one
               pages.push(currentCols);
@@ -245,8 +246,24 @@ const PaperPreviewModal = ({
     }
   };
 
-  const handleExportDocx = () => {
+  const handleExportDocx = async () => {
     if (!printRef.current) return;
+
+    // Dynamically load html-docx-js if it's missing (e.g., after Vite HMR or CDN delay)
+    if (typeof window.htmlDocx === 'undefined') {
+      try {
+        await new Promise((resolve, reject) => {
+          const script = document.createElement('script');
+          script.src = 'https://unpkg.com/html-docx-js/dist/html-docx.js';
+          script.onload = resolve;
+          script.onerror = reject;
+          document.head.appendChild(script);
+        });
+      } catch (e) {
+        alert('Failed to load DOCX export library. Please check your internet connection.');
+        return;
+      }
+    }
 
     // Clone the print reference to manipulate it without affecting the UI
     const clone = printRef.current.cloneNode(true);
@@ -285,35 +302,6 @@ const PaperPreviewModal = ({
 
       table.appendChild(tr);
       container.parentNode.replaceChild(table, container);
-    });
-
-    // 2. Convert fill lines (.items-baseline with .overflow-hidden dots) to table rows with dotted borders
-    const baselineFlexes = clone.querySelectorAll('.items-baseline');
-    baselineFlexes.forEach(container => {
-      const dotSpan = container.querySelector('.overflow-hidden');
-      if (dotSpan && dotSpan.textContent.includes('.....')) {
-        const labelSpan = container.querySelector('span:not(.overflow-hidden)');
-        const table = document.createElement('table');
-        table.style.width = '100%';
-        table.style.borderCollapse = 'collapse';
-        table.style.border = 'none';
-        const tr = document.createElement('tr');
-
-        const tdLabel = document.createElement('td');
-        tdLabel.style.width = '1%';
-        tdLabel.style.whiteSpace = 'nowrap';
-        tdLabel.innerHTML = labelSpan ? labelSpan.innerHTML : '';
-
-        const tdLine = document.createElement('td');
-        tdLine.style.borderBottom = '1px dotted black';
-        tdLine.style.width = '99%';
-
-        tr.appendChild(tdLabel);
-        tr.appendChild(tdLine);
-        table.appendChild(tr);
-
-        container.parentNode.replaceChild(table, container);
-      }
     });
 
     // 3. Convert .justify-between to table for cover page
@@ -377,6 +365,50 @@ const PaperPreviewModal = ({
         container.parentNode.replaceChild(table, container);
       }
     });
+
+    // 6. Fix image scaling for MS Word and pad with white
+    const originalImages = printRef.current.querySelectorAll('img');
+    const clonedImages = clone.querySelectorAll('img');
+    clonedImages.forEach((img, i) => {
+      const origImg = originalImages[i];
+      if (origImg && origImg.complete && origImg.naturalWidth > 0) {
+        try {
+          const canvas = document.createElement('canvas');
+          canvas.width = 270;
+          canvas.height = 150;
+          const ctx = canvas.getContext('2d');
+          ctx.fillStyle = 'white';
+          ctx.fillRect(0, 0, 270, 150);
+          
+          const imgW = origImg.naturalWidth;
+          const imgH = origImg.naturalHeight;
+          const ratio = Math.min(270 / imgW, 150 / imgH);
+          const newW = imgW * ratio;
+          const newH = imgH * ratio;
+          const x = (270 - newW) / 2;
+          const y = (150 - newH) / 2;
+          
+          ctx.drawImage(origImg, x, y, newW, newH);
+          img.src = canvas.toDataURL('image/png');
+        } catch (e) {
+          console.warn("Canvas cross-origin padding failed for DOCX", e);
+        }
+      }
+      img.setAttribute('width', '270');
+      img.setAttribute('height', '150');
+      img.style.width = '270px';
+      img.style.height = '150px';
+      img.style.maxWidth = '270px';
+    });
+
+    // 7. Force explicit page breaks for DOCX to exactly match preview pagination
+    const pages = clone.querySelectorAll('.a4-page');
+    for (let i = 1; i < pages.length; i++) {
+      const br = document.createElement('br');
+      br.style.pageBreakBefore = 'always';
+      br.style.clear = 'both';
+      pages[i].insertBefore(br, pages[i].firstChild);
+    }
 
     // Construct a full HTML document string including styles for the export
     const contentHtml = clone.innerHTML;
@@ -448,9 +480,9 @@ const PaperPreviewModal = ({
     return (
       <div key={q.id} className="mb-6 break-inside-avoid question-block" style={{ pageBreakInside: 'avoid' }}>
         {showGroupHeader && (
-          <div className="mb-3 p-3 border-2 border-gray-300 rounded bg-gray-50 scenario-block">
+          <div className="mb-3 p-3 border-2 border-gray-300 rounded bg-gray-50 scenario-block" style={{ border: '2px solid #ccc', padding: '12px', backgroundColor: '#f9fafb', borderRadius: '8px' }}>
             <div className="flex justify-between items-center mb-2">
-              <h4 className="font-bold uppercase">Scenario</h4>
+              <span className="font-bold uppercase">Scenario</span>
               {q._groupRange && (
                 <span className="text-sm font-semibold text-blue-600 bg-blue-100 px-2 py-1 rounded">
                   ใช้กับโจทย์ข้อ {q._groupRange.start} - {q._groupRange.end}
@@ -458,7 +490,7 @@ const PaperPreviewModal = ({
               )}
             </div>
             {q.group.text && <div className="mb-2">{renderTextWithMath(q.group.text)}</div>}
-            {q.group.image_url && <img src={q.group.image_url} alt="Group" className="max-w-full h-auto mt-2" />}
+            {q.group.image_url && <img src={q.group.image_url} alt="Group" className="mt-2 block bg-white" style={{ width: '270px', height: '150px', objectFit: 'contain' }} />}
           </div>
         )}
 
@@ -466,7 +498,7 @@ const PaperPreviewModal = ({
           <span className="font-bold whitespace-nowrap">{idx + 1}.</span>
           <div className="flex-1">
             {renderTextWithMath(q.text)}
-            {q.image_url && <img src={q.image_url} alt="Question" className="max-w-full h-auto mt-2 block" />}
+            {q.image_url && <img src={q.image_url} alt="Question" className="mt-2 block bg-white" style={{ width: '270px', height: '150px', objectFit: 'contain' }} />}
           </div>
         </div>
 
@@ -614,26 +646,26 @@ const PaperPreviewModal = ({
 
                   <div className="flex items-baseline mb-4 text-base w-full">
                     <span className="whitespace-nowrap">ชื่อ - นามสกุล&nbsp;</span>
-                    <span className="flex-1 overflow-hidden text-clip whitespace-nowrap">.......................................................................................................................................................................................................................</span>
+                    <span className="text-gray-500 tracking-widest overflow-hidden">..................................................................................................</span>
                   </div>
                   <div className="flex justify-between mb-4 text-base gap-8">
                     <div className="flex items-baseline flex-1">
                       <span className="whitespace-nowrap">รหัสประจำตัวนิสิต&nbsp;</span>
-                      <span className="flex-1 overflow-hidden text-clip whitespace-nowrap">...........................................</span>
+                      <span className="text-gray-500 tracking-widest overflow-hidden">...............................................</span>
                     </div>
                     <div className="flex items-baseline w-[40%]">
                       <span className="whitespace-nowrap">กลุ่มเรียน&nbsp;</span>
-                      <span className="flex-1 overflow-hidden text-clip whitespace-nowrap">.....................................................................................................................</span>
+                      <span className="text-gray-500 tracking-widest overflow-hidden">......................................</span>
                     </div>
                   </div>
                   <div className="flex justify-between mb-6 text-base gap-8">
                     <div className="flex items-baseline flex-1">
                       <span className="whitespace-nowrap">วันที่สอบ&nbsp;</span>
-                      <span className="flex-1 overflow-hidden text-clip whitespace-nowrap">.......................................................</span>
+                      <span className="text-gray-500 tracking-widest overflow-hidden">.........................................................</span>
                     </div>
                     <div className="flex items-baseline w-[40%]">
                       <span className="whitespace-nowrap">ห้องสอบ&nbsp;</span>
-                      <span className="flex-1 overflow-hidden text-clip whitespace-nowrap">.........................................................................................</span>
+                      <span className="text-gray-500 tracking-widest overflow-hidden">.......................................</span>
                     </div>
                   </div>
                   <hr className="border-t-2 border-black mb-6" />
@@ -655,11 +687,11 @@ const PaperPreviewModal = ({
                   </div>
 
                   <div className="flex justify-end text-base mt-8">
-                    <div className="text-center">
+                    <div className="text-center w-[250px]">
                       <div className="mb-3">สำหรับกรรมการคุมสอบ</div>
                       <div className="mb-2 whitespace-nowrap flex items-baseline">
                         <span>ลงชื่อ</span>
-                        <span className="flex-1 overflow-hidden text-clip whitespace-nowrap">.....................................................................................</span>
+                        <span className="text-gray-500 tracking-widest ml-2 overflow-hidden">...................................................</span>
                       </div>
                       <div>(...................................................)</div>
                     </div>
