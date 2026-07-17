@@ -65,19 +65,19 @@ const PaperPreviewModal = ({
       } else if (!seenGroups.has(q.group.id)) {
         seenGroups.add(q.group.id);
         const groupQ = grouped[q.group.id];
-        
+
         // Record range
         groupRanges[q.group.id] = {
           start: currentIndex,
           end: currentIndex + groupQ.length - 1
         };
-        
+
         // Add all questions for this group
         groupQ.forEach(gq => {
           // Attach range text to the first question of the group so we can render it
           result.push({
-             ...gq, 
-             _groupRange: groupRanges[q.group.id]
+            ...gq,
+            _groupRange: groupRanges[q.group.id]
           });
           currentIndex++;
         });
@@ -104,6 +104,7 @@ const PaperPreviewModal = ({
   // Pagination state
   const measureRef = useRef(null);
   const printRef = useRef(null);
+  const answerPrintRef = useRef(null);
   const [isMeasuring, setIsMeasuring] = useState(true);
   const [paginatedPages, setPaginatedPages] = useState([]);
 
@@ -130,6 +131,9 @@ const PaperPreviewModal = ({
         let currentCols = columns === 1 ? [[]] : [[], []];
         let currentHeight = 0;
         let currentColIdx = 0;
+        
+        // Use a larger buffer for DOCX because MS Word rendering differs from Chrome
+        const safetyBuffer = format === 'docx' ? 80 : 10;
 
         questionEls.forEach((el, index) => {
           const qObj = sortedQuestions[index];
@@ -139,8 +143,7 @@ const PaperPreviewModal = ({
           const marginBottom = parseFloat(style.marginBottom) || 0;
           const totalH = el.getBoundingClientRect().height + marginTop + marginBottom;
 
-          // Add 80px safety buffer to ensure it doesn't overflow in MS Word DOCX rendering
-          if (currentHeight + totalH > CONTENT_HEIGHT - 80) {
+          if (currentHeight + totalH > CONTENT_HEIGHT - safetyBuffer) {
             if (columns === 1 || currentColIdx === 1) {
               // Push current page and start a new one
               pages.push(currentCols);
@@ -174,16 +177,16 @@ const PaperPreviewModal = ({
       isCancelled = true;
       if (timer) clearTimeout(timer);
     };
-  }, [isOpen, examData, columns]);
+  }, [isOpen, examData, columns, sortedQuestions, format]);
 
   if (!isOpen || !examData) return null;
 
-  const handlePrintPdf = () => {
-    if (!printRef.current) return;
+  const handlePrintPdf = (targetRef, title = 'Exam Paper') => {
+    if (!targetRef.current) return;
 
-    const clone = printRef.current.cloneNode(true);
+    const clone = targetRef.current.cloneNode(true);
 
-    // Remove MathML
+    // Remove MathML as it often doesn't render well in basic print windows
     const mathmlElements = clone.querySelectorAll('.katex-mathml');
     mathmlElements.forEach(el => el.remove());
 
@@ -199,7 +202,7 @@ const PaperPreviewModal = ({
       <html>
         <head>
           <meta charset="utf-8">
-          <title>${examData.name || 'Exam Paper'}</title>
+          <title>${title}</title>
           ${styles}
           <style>
             body { font-family: "TH SarabunPSK", "Sarabun", "TH Sarabun New", sans-serif; font-size: 18px; line-height: 1.5; margin: 0; padding: 0; background: white; color: black; }
@@ -246,8 +249,8 @@ const PaperPreviewModal = ({
     }
   };
 
-  const handleExportDocx = async () => {
-    if (!printRef.current) return;
+  const handleExportDocx = async (targetRef, filename) => {
+    if (!targetRef.current) return;
 
     // Dynamically load html-docx-js if it's missing (e.g., after Vite HMR or CDN delay)
     if (typeof window.htmlDocx === 'undefined') {
@@ -266,7 +269,7 @@ const PaperPreviewModal = ({
     }
 
     // Clone the print reference to manipulate it without affecting the UI
-    const clone = printRef.current.cloneNode(true);
+    const clone = targetRef.current.cloneNode(true);
 
     // Remove MathML as it causes corrupted/blank DOCX files in MS Word
     const mathmlElements = clone.querySelectorAll('.katex-mathml');
@@ -379,7 +382,7 @@ const PaperPreviewModal = ({
           const ctx = canvas.getContext('2d');
           ctx.fillStyle = 'white';
           ctx.fillRect(0, 0, 270, 150);
-          
+
           const imgW = origImg.naturalWidth;
           const imgH = origImg.naturalHeight;
           const ratio = Math.min(270 / imgW, 150 / imgH);
@@ -387,7 +390,7 @@ const PaperPreviewModal = ({
           const newH = imgH * ratio;
           const x = (270 - newW) / 2;
           const y = (150 - newH) / 2;
-          
+
           ctx.drawImage(origImg, x, y, newW, newH);
           img.src = canvas.toDataURL('image/png');
         } catch (e) {
@@ -454,7 +457,7 @@ const PaperPreviewModal = ({
       const url = URL.createObjectURL(converted);
       const link = document.createElement('a');
       link.href = url;
-      link.download = `${examData.name}.docx`;
+      link.download = filename;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
@@ -467,9 +470,17 @@ const PaperPreviewModal = ({
 
   const handleExport = () => {
     if (format === 'pdf') {
-      handlePrintPdf();
+      handlePrintPdf(printRef, `${examData.name}_Exam`);
     } else {
-      handleExportDocx();
+      handleExportDocx(printRef, `${examData.name}_Exam.docx`);
+    }
+  };
+
+  const handleExportAnswerKey = () => {
+    if (format === 'pdf') {
+      handlePrintPdf(answerPrintRef, `${examData.name}_AnswerKey`);
+    } else {
+      handleExportDocx(answerPrintRef, `${examData.name}_AnswerKey.docx`);
     }
   };
 
@@ -515,6 +526,35 @@ const PaperPreviewModal = ({
       </div>
     );
   };
+
+  // Calculate Answer Key Pagination
+  const ANSWER_COLS = 4;
+  const ANSWER_ROWS = 25; // 25 rows per page fits nicely in A4
+  const ITEMS_PER_PAGE = ANSWER_COLS * ANSWER_ROWS;
+  
+  const answerPages = [];
+  if (sortedQuestions && sortedQuestions.length > 0) {
+    for (let p = 0; p < sortedQuestions.length; p += ITEMS_PER_PAGE) {
+      const pageQuestions = sortedQuestions.slice(p, p + ITEMS_PER_PAGE);
+      const tableRows = [];
+      
+      for (let r = 0; r < ANSWER_ROWS; r++) {
+        const row = [];
+        let hasData = false;
+        for (let c = 0; c < ANSWER_COLS; c++) {
+          const qIdx = c * ANSWER_ROWS + r;
+          if (qIdx < pageQuestions.length) {
+            row.push({ q: pageQuestions[qIdx], index: p + qIdx });
+            hasData = true;
+          } else {
+            row.push(null); // empty cell
+          }
+        }
+        if (hasData) tableRows.push(row);
+      }
+      answerPages.push(tableRows);
+    }
+  }
 
   return (
     <div className="fixed inset-0 z-[200] flex items-center justify-center bg-slate-900/80 backdrop-blur-sm p-2 sm:p-4">
@@ -567,7 +607,15 @@ const PaperPreviewModal = ({
               className={`flex items-center gap-2 px-4 py-2 text-white font-semibold rounded-xl transition-colors ${isMeasuring ? 'bg-gray-400 cursor-not-allowed' : 'bg-zense-navy dark:bg-blue-600 hover:bg-blue-800 dark:hover:bg-blue-500'}`}
             >
               {format === 'pdf' ? <Printer size={18} /> : <FileDown size={18} />}
-              {isMeasuring ? 'Calculating...' : `${t('exam.export', 'Export')} ${format.toUpperCase()}`}
+              {isMeasuring ? 'Calculating...' : `${t('exam.export', 'Export')} ข้อสอบ`}
+            </button>
+            <button
+              onClick={handleExportAnswerKey}
+              disabled={isMeasuring}
+              className={`flex items-center gap-2 px-4 py-2 font-semibold rounded-xl transition-colors border-2 ${isMeasuring ? 'text-gray-400 border-gray-200 cursor-not-allowed' : 'text-blue-600 border-blue-200 bg-blue-50 hover:bg-blue-100 dark:text-blue-400 dark:border-blue-800 dark:bg-blue-900/30 dark:hover:bg-blue-900/50'}`}
+            >
+              {format === 'pdf' ? <Printer size={18} /> : <FileDown size={18} />}
+              {isMeasuring ? 'Calculating...' : `${t('exam.export', 'Export')} เฉลย`}
             </button>
             <button onClick={onClose} className="p-2 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-full transition-colors text-slate-500">
               <X size={20} />
@@ -717,8 +765,52 @@ const PaperPreviewModal = ({
                     </div>
                   </div>
                 ))}
-
               </div>
+              
+              {/* ANSWER KEY PRINTABLE AREA (Separated from exam) */}
+              {(!isMeasuring && answerPages.length > 0) && (
+                <div className="mt-8 pt-8 border-t-2 border-dashed border-gray-400 flex flex-col items-center">
+                  <div className="bg-blue-100 text-blue-800 font-bold px-4 py-2 rounded-lg mb-8 text-xl">ส่วนของเฉลย (แยกส่งออกไฟล์ต่างหาก)</div>
+                  
+                  <div ref={answerPrintRef} className="print-area text-black" style={{ fontFamily: '"TH SarabunPSK", "Sarabun", "TH Sarabun New", sans-serif', fontSize: '18px', color: 'black' }}>
+                    {answerPages.map((tableRows, pIdx) => (
+                      <div key={`ans-page-${pIdx}`} className="a4-page answer-key-page bg-white shadow-xl mx-auto mb-8 text-left" style={{ width: `${PAGE_WIDTH}px`, height: `${PAGE_HEIGHT}px`, padding: `${MARGIN}px`, boxSizing: 'border-box' }}>
+                        
+                        <div className="flex justify-between items-center mb-6 text-gray-500 border-b border-gray-300 pb-2 text-sm">
+                          <div>เฉลยข้อสอบ {courseCode} {courseName}</div>
+                          <div>หน้าเฉลย {pIdx + 1} / {answerPages.length}</div>
+                        </div>
+
+                        <h2 className="text-2xl font-bold mb-6 text-center">เฉลยข้อสอบ</h2>
+                        
+                        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '18px' }}>
+                          <tbody>
+                            {tableRows.map((row, rIdx) => (
+                              <tr key={rIdx}>
+                                {row.map((cell, cIdx) => {
+                                  if (!cell) {
+                                    return <td key={cIdx} style={{ width: '25%', padding: '6px 8px' }}></td>;
+                                  }
+                                  const { q, index } = cell;
+                                  const correctIdx = q.choices ? q.choices.findIndex(c => c.isCorrect || c.choice_correct) : -1;
+                                  const answerChar = correctIdx !== -1 ? String.fromCharCode(65 + correctIdx) : '-';
+                                  return (
+                                    <td key={cIdx} style={{ width: '25%', padding: '6px 8px', borderBottom: '1px solid #eee' }}>
+                                      <span style={{ fontWeight: 'bold', marginRight: '8px' }}>{index + 1}.</span>
+                                      <span style={{ color: 'red', fontWeight: 'bold' }}>{answerChar}</span>
+                                    </td>
+                                  )
+                                })}
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
             </div>
           </div>
         </div>
