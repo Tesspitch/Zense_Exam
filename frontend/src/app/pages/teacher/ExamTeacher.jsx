@@ -569,7 +569,7 @@ const ExamTeacher = () => {
                       >
                         <span>
                           {selectedSubjectsFilter.length === 0 
-                            ? 'เลือกวิชาทั้งหมด (All Subjects)' 
+                            ? 'กรุณาเลือกวิชาที่ต้องการ' 
                             : `เลือกแล้ว ${selectedSubjectsFilter.length} วิชา`}
                         </span>
                         <svg className={`w-4 h-4 text-slate-400 transition-transform ${isSubjectDropdownOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
@@ -592,9 +592,10 @@ const ExamTeacher = () => {
                       )}
                     </div>
                     <div className="space-y-4 mb-2 max-h-64 overflow-y-auto custom-scrollbar pr-2">
-                      {Object.entries(
+                      {selectedSubjectsFilter.length === 0 ? (
+                        <div className="text-center py-6 text-sm text-slate-500">กรุณาเลือกวิชาจาก Dropdown เพื่อแสดงคอร์ส</div>
+                      ) : Object.entries(
                         courses.filter(c => {
-                          if (selectedSubjectsFilter.length === 0) return true;
                           return selectedSubjectsFilter.includes(c.sj_name || 'Other');
                         }).reduce((acc, c) => {
                           const sjName = c.sj_name || 'Other';
@@ -626,8 +627,7 @@ const ExamTeacher = () => {
                         </div>
                       ))}
                       
-                      {courses.filter(c => {
-                          if (selectedSubjectsFilter.length === 0) return true;
+                      {selectedSubjectsFilter.length > 0 && courses.filter(c => {
                           return selectedSubjectsFilter.includes(c.sj_name || 'Other');
                         }).length === 0 && (
                           <div className="text-center py-6 text-sm text-slate-500">ไม่พบวิชาที่เลือก</div>
@@ -1131,13 +1131,15 @@ const ExamTeacher = () => {
       )}
 
       {/* Paper Preview Modal */}
-      <PaperPreviewModal 
-        isOpen={showPaperPreview}
-        onClose={() => setShowPaperPreview(false)}
-        examData={paperExamData}
-        initialFormat={paperSettings.format}
-        initialColumns={paperSettings.columns}
-      />
+      {showPaperPreview && (
+        <PaperPreviewModal 
+          isOpen={showPaperPreview}
+          onClose={() => setShowPaperPreview(false)}
+          examData={paperExamData}
+          initialFormat={paperSettings.format}
+          initialColumns={paperSettings.columns}
+        />
+      )}
     </div>
   );
 };

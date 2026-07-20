@@ -715,7 +715,10 @@ const PaperPreviewModal = ({
               <div ref={printRef} className="print-area text-black" style={{ fontFamily: '"TH SarabunPSK", "Sarabun", "TH Sarabun New", sans-serif', fontSize: '18px', color: 'black' }}>
 
                 {/* 1. Cover Page */}
-                <div className="a4-page cover-page bg-white shadow-xl mx-auto mb-8 text-left" style={{ width: `${PAGE_WIDTH}px`, height: `${PAGE_HEIGHT}px`, padding: `${MARGIN}px`, boxSizing: 'border-box' }}>
+                <div className="a4-page cover-page bg-white shadow-xl mx-auto mb-8 text-left relative" style={{ width: `${PAGE_WIDTH}px`, height: `${PAGE_HEIGHT}px`, padding: `${MARGIN}px`, boxSizing: 'border-box' }}>
+                  <div className="absolute" style={{ top: '30px', right: '40px', fontSize: '24px', color: '#cbd5e1', fontWeight: 'bold', zIndex: 10 }}>
+                    ชุดที่ {currentSet}
+                  </div>
                   <div className="text-center mb-6">
                     <div className="font-bold" style={{ fontSize: '36px', marginBottom: '8px' }}>{university || '.........................................................'}</div>
                     <div style={{ fontSize: '28px' }}>{faculty || '.........................................................'}</div>
@@ -787,10 +790,13 @@ const PaperPreviewModal = ({
 
                 {/* 2. Question Pages */}
                 {!isMeasuring && paginatedPages.map((pageCols, pIdx) => (
-                  <div key={pIdx} className="a4-page question-page bg-white shadow-xl mx-auto mb-8 text-left" style={{ width: `${PAGE_WIDTH}px`, height: `${PAGE_HEIGHT}px`, padding: `${MARGIN}px`, boxSizing: 'border-box' }}>
+                  <div key={pIdx} className="a4-page question-page bg-white shadow-xl mx-auto mb-8 text-left relative" style={{ width: `${PAGE_WIDTH}px`, height: `${PAGE_HEIGHT}px`, padding: `${MARGIN}px`, boxSizing: 'border-box' }}>
+                    <div className="absolute" style={{ top: '30px', right: '40px', fontSize: '24px', color: '#cbd5e1', fontWeight: 'bold', zIndex: 10 }}>
+                      ชุดที่ {currentSet}
+                    </div>
 
                     {/* Header for question pages */}
-                    <div className="flex justify-between items-center mb-6 text-gray-500 border-b border-gray-300 pb-2 text-sm">
+                    <div className="flex justify-between items-center mb-6 text-gray-500 border-b border-gray-300 pb-2 text-sm mt-4">
                       <div>{courseCode} {courseName}</div>
                       <div>หน้า {pIdx + 1} / {paginatedPages.length}</div>
                     </div>

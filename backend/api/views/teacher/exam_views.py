@@ -144,9 +144,10 @@ def teacher_exams(request):
                 return JsonResponse({'error': 'กรุณากำหนดจำนวนข้อสอบอย่างน้อย 1 ข้อ'}, status=400)
 
             # Gather questions from selected courses, filtered by difficulty
-            easy_pool = list(Question.objects.filter(chap_id__in=courses, qt_diff_lv__iexact='easy'))
-            medium_pool = list(Question.objects.filter(chap_id__in=courses, qt_diff_lv__iexact='medium'))
-            hard_pool = list(Question.objects.filter(chap_id__in=courses, qt_diff_lv__iexact='hard'))
+            all_course_qs = list(Question.objects.filter(chap_id__in=courses).select_related('group_id'))
+            easy_pool = [q for q in all_course_qs if q.qt_diff_lv.lower() == 'easy']
+            medium_pool = [q for q in all_course_qs if q.qt_diff_lv.lower() == 'medium']
+            hard_pool = [q for q in all_course_qs if q.qt_diff_lv.lower() == 'hard']
 
             # Validate availability
             if len(easy_pool) < easy_count:
@@ -156,11 +157,44 @@ def teacher_exams(request):
             if len(hard_pool) < hard_count:
                 return JsonResponse({'error': f'ข้อสอบระดับยากไม่พอ (มี {len(hard_pool)} ข้อ, ต้องการ {hard_count} ข้อ)'}, status=400)
 
-            # Randomly select questions
-            selected_easy = random.sample(easy_pool, easy_count) if easy_count > 0 else []
-            selected_medium = random.sample(medium_pool, medium_count) if medium_count > 0 else []
-            selected_hard = random.sample(hard_pool, hard_count) if hard_count > 0 else []
-            selected_questions = selected_easy + selected_medium + selected_hard
+            # Group questions by group_id to keep scenarios intact
+            groups = {}
+            for q in all_course_qs:
+                g_id = f"g_{q.group_id_id}" if q.group_id_id else f"q_{q.qt_id}"
+                if g_id not in groups:
+                    groups[g_id] = []
+                groups[g_id].append(q)
+
+            group_list = list(groups.values())
+            random.shuffle(group_list)
+
+            needed = {
+                'easy': easy_count,
+                'medium': medium_count,
+                'hard': hard_count
+            }
+
+            selected_questions = []
+
+            for g in group_list:
+                # Check if this group helps fulfill any POSITIVE needed count
+                helps = False
+                for q in g:
+                    diff = q.qt_diff_lv.lower()
+                    if needed.get(diff, 0) > 0:
+                        helps = True
+                        break
+                
+                if helps:
+                    selected_questions.extend(g)
+                    for q in g:
+                        diff = q.qt_diff_lv.lower()
+                        if diff in needed:
+                            needed[diff] -= 1
+                
+                # Check if we are done
+                if all(v <= 0 for v in needed.values()):
+                    break
 
             exam_set_detail_content = json.dumps({
                 "description": description,
@@ -215,9 +249,9 @@ def teacher_exams(request):
                 'message': 'Exam created successfully',
                 'exam_id': online_exam_id,
                 'total_questions': len(selected_questions),
-                'easy': len(selected_easy),
-                'medium': len(selected_medium),
-                'hard': len(selected_hard)
+                'easy': len([q for q in selected_questions if q.qt_diff_lv.lower() == 'easy']),
+                'medium': len([q for q in selected_questions if q.qt_diff_lv.lower() == 'medium']),
+                'hard': len([q for q in selected_questions if q.qt_diff_lv.lower() == 'hard'])
             }, status=201)
 
         else:
