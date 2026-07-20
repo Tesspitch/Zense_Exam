@@ -467,17 +467,19 @@ const QuestionBank = () => {
                         onChange={handleOcrUpload}
                       />
                     </div>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className={`grid grid-cols-1 ${ocrMode === 'math' || (formData.qt_detail && formData.qt_detail.includes('$')) ? 'md:grid-cols-2' : ''} gap-4`}>
                       <RichTextEditor
                         value={formData.qt_detail}
                         onChange={(val) => handleInputChange({ target: { name: 'qt_detail', value: val } })}
-                        placeholder={ocrMode === 'math' ? `${t('question.questionText')} (use $math$ or $$math$$ for LaTeX)` : t('question.questionText')}
+                        placeholder={`${t('question.questionText')} (use $math$ or $$math$$ for LaTeX)`}
                         className="w-full text-sm"
                       />
-                      <div className="w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 overflow-y-auto max-h-[110px] text-sm text-slate-800 dark:text-slate-200">
-                        <div className="text-xs font-semibold text-slate-400 mb-1">PREVIEW</div>
-                        {renderTextWithMath(formData.qt_detail)}
-                      </div>
+                      {(ocrMode === 'math' || (formData.qt_detail && formData.qt_detail.includes('$'))) && (
+                        <div className="w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 overflow-y-auto max-h-[110px] text-sm text-slate-800 dark:text-slate-200">
+                          <div className="text-xs font-semibold text-slate-400 mb-1">PREVIEW</div>
+                          {renderTextWithMath(formData.qt_detail)}
+                        </div>
+                      )}
                     </div>
                   </div>
 
@@ -510,17 +512,19 @@ const QuestionBank = () => {
                                 <span className="text-sm font-medium text-slate-500 w-6">
                                   {String.fromCharCode(65 + index)}
                                 </span>
-                                <div className="grid grid-cols-1 lg:grid-cols-2 gap-2 flex-1">
+                                <div className={`grid grid-cols-1 ${(choice.choice_detail && choice.choice_detail.includes('$')) ? 'lg:grid-cols-2' : ''} gap-2 flex-1`}>
                                   <RichTextEditor
                                     simple={true}
                                     value={choice.choice_detail}
                                     onChange={(val) => handleChoiceChange(index, 'choice_detail', val)}
-                                    placeholder={ocrMode === 'math' ? `Choice ${String.fromCharCode(65 + index)} (use $math$ for LaTeX)` : `Choice ${String.fromCharCode(65 + index)}`}
+                                    placeholder={`Choice ${String.fromCharCode(65 + index)} (use $math$ for LaTeX)`}
                                     className="w-full text-sm"
                                   />
-                                  <div className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 text-slate-800 dark:text-slate-200 text-sm overflow-x-auto whitespace-nowrap min-h-[38px] flex items-center">
-                                    {choice.choice_detail ? renderTextWithMath(choice.choice_detail) : <span className="text-slate-400 text-xs">{t('question.preview')}</span>}
-                                  </div>
+                                  {(choice.choice_detail && choice.choice_detail.includes('$')) && (
+                                    <div className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 text-slate-800 dark:text-slate-200 text-sm overflow-x-auto whitespace-nowrap min-h-[38px] flex items-center">
+                                      {choice.choice_detail ? renderTextWithMath(choice.choice_detail) : <span className="text-slate-400 text-xs">{t('question.preview')}</span>}
+                                    </div>
+                                  )}
                                 </div>
                               </div>
                               <div className="pl-8">

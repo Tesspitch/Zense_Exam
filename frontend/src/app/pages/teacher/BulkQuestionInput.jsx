@@ -17,7 +17,7 @@ const BulkQuestionInput = () => {
   const [ocrLoadingId, setOcrLoadingId] = useState(null);
 
   const [globalChapId, setGlobalChapId] = useState('');
-
+  const [useSharedScenario, setUseSharedScenario] = useState(false);
   const [sharedScenario, setSharedScenario] = useState({ text: '', image_url: '' });
 
   // We start with one empty question
@@ -177,13 +177,21 @@ const BulkQuestionInput = () => {
         chap_id: globalChapId
       }));
 
-      await api.post('/api/teacher/questions/bulk/', {
+      const payload = {
         questions: validQuestions,
-        shared_group: {
+      };
+
+      if (useSharedScenario && (
+        (sharedScenario.text && sharedScenario.text.replace(/<[^>]*>/g, '').trim() !== '') || 
+        (sharedScenario.image_url && sharedScenario.image_url.trim() !== '')
+      )) {
+        payload.shared_group = {
           shared_text: sharedScenario.text,
           shared_image_url: sharedScenario.image_url
-        }
-      }, {
+        };
+      }
+
+      await api.post('/api/teacher/questions/bulk/', payload, {
         headers: { Authorization: `Bearer ${token}` }
       });
 
@@ -284,30 +292,54 @@ const BulkQuestionInput = () => {
       {/* Global Shared Scenario */}
       <div className="max-w-6xl mx-auto px-6 mt-8">
         <div className="p-6 bg-white dark:bg-slate-800 rounded-xl border border-blue-200 dark:border-blue-900/50 shadow-sm space-y-4">
-          <div>
-            <h2 className="text-lg font-bold text-slate-800 dark:text-white">{t('question.sharedScenario')}</h2>
-            <p className="text-sm text-slate-500 dark:text-slate-400">{t('question.sharedScenarioDesc')}</p>
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="text-lg font-bold text-slate-800 dark:text-white">{t('question.sharedScenario')}</h2>
+              <p className="text-sm text-slate-500 dark:text-slate-400">{t('question.sharedScenarioDesc')}</p>
+            </div>
+            <label className="flex items-center cursor-pointer">
+              <div className="relative">
+                <input 
+                  type="checkbox" 
+                  className="sr-only" 
+                  checked={useSharedScenario}
+                  onChange={(e) => setUseSharedScenario(e.target.checked)}
+                />
+                <div className={`block w-14 h-8 rounded-full transition-colors ${useSharedScenario ? 'bg-purple-600' : 'bg-slate-300 dark:bg-slate-600'}`}></div>
+                <div className={`dot absolute left-1 top-1 bg-white w-6 h-6 rounded-full transition-transform ${useSharedScenario ? 'transform translate-x-6' : ''}`}></div>
+              </div>
+              <div className="ml-3 text-sm font-medium text-slate-700 dark:text-slate-300">
+                {useSharedScenario ? 'เปิดใช้งาน' : 'ปิดใช้งาน'}
+              </div>
+            </label>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+
+          {useSharedScenario && (
+            <>
+              <div className={`grid grid-cols-1 ${ocrMode === 'math' || (sharedScenario.text && sharedScenario.text.includes('$')) ? 'md:grid-cols-2' : ''} gap-4`}>
             <RichTextEditor
               value={sharedScenario.text}
               onChange={(val) => setSharedScenario(prev => ({ ...prev, text: val }))}
-              placeholder={ocrMode === 'math' ? `${t('question.scenarioText')} (use $math$ or $$math$$ for LaTeX)` : t('question.scenarioText')}
+              placeholder={`${t('question.scenarioText')} (use $math$ or $$math$$ for LaTeX)`}
               className="w-full text-sm"
             />
-            <div className="w-full px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 overflow-y-auto max-h-[85px] text-sm text-slate-800 dark:text-slate-200">
-              <div className="text-xs font-semibold text-slate-400 mb-1">{t('question.preview')}</div>
-              {renderTextWithMath(sharedScenario.text)}
-            </div>
+            {(ocrMode === 'math' || (sharedScenario.text && sharedScenario.text.includes('$'))) && (
+              <div className="w-full px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 overflow-y-auto max-h-[85px] text-sm text-slate-800 dark:text-slate-200">
+                <div className="text-xs font-semibold text-slate-400 mb-1">{t('question.preview')}</div>
+                {renderTextWithMath(sharedScenario.text)}
+              </div>
+            )}
           </div>
-          <div>
-            <ImageUploadField
-              label={t('question.scenarioImage')}
-              value={sharedScenario.image_url}
-              onChange={(val) => setSharedScenario(prev => ({ ...prev, image_url: val }))}
-              placeholder={`${t('question.scenarioImage')} URL`}
-            />
-          </div>
+              <div>
+                <ImageUploadField
+                  label={t('question.scenarioImage')}
+                  value={sharedScenario.image_url}
+                  onChange={(val) => setSharedScenario(prev => ({ ...prev, image_url: val }))}
+                  placeholder={`${t('question.scenarioImage')} URL`}
+                />
+              </div>
+            </>
+          )}
         </div>
       </div>
 
@@ -382,17 +414,19 @@ const BulkQuestionInput = () => {
                       onChange={(e) => handleOcrUpload(e, q.id)}
                     />
                   </div>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className={`grid grid-cols-1 ${ocrMode === 'math' || (q.qt_detail && q.qt_detail.includes('$')) ? 'md:grid-cols-2' : ''} gap-4`}>
                     <RichTextEditor
                       value={q.qt_detail}
                       onChange={(val) => updateQuestion(q.id, 'qt_detail', val)}
-                      placeholder={ocrMode === 'math' ? `${t('question.questionText')} (use $math$ or $$math$$ for LaTeX)` : t('question.questionText')}
+                      placeholder={`${t('question.questionText')} (use $math$ or $$math$$ for LaTeX)`}
                       className="w-full text-sm"
                     />
-                    <div className="w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 overflow-y-auto max-h-[110px] text-sm text-slate-800 dark:text-slate-200">
-                      <div className="text-xs font-semibold text-slate-400 mb-1">{t('question.preview')}</div>
-                      {renderTextWithMath(q.qt_detail)}
-                    </div>
+                    {(ocrMode === 'math' || (q.qt_detail && q.qt_detail.includes('$'))) && (
+                      <div className="w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 overflow-y-auto max-h-[110px] text-sm text-slate-800 dark:text-slate-200">
+                        <div className="text-xs font-semibold text-slate-400 mb-1">{t('question.preview')}</div>
+                        {renderTextWithMath(q.qt_detail)}
+                      </div>
+                    )}
                   </div>
                 </div>
 
@@ -426,17 +460,19 @@ const BulkQuestionInput = () => {
                             <span className="text-sm font-medium text-slate-400 w-5">
                               {String.fromCharCode(65 + cIndex)}
                             </span>
-                            <div className="grid grid-cols-1 lg:grid-cols-2 gap-2 flex-1">
+                            <div className={`grid grid-cols-1 ${(choice.choice_detail && choice.choice_detail.includes('$')) ? 'lg:grid-cols-2' : ''} gap-2 flex-1`}>
                               <RichTextEditor
                                 simple={true}
                                 value={choice.choice_detail}
                                 onChange={(val) => updateChoice(q.id, cIndex, 'choice_detail', val)}
-                                placeholder={ocrMode === 'math' ? `Choice ${String.fromCharCode(65 + cIndex)} (use $math$ for LaTeX)` : `Choice ${String.fromCharCode(65 + cIndex)}`}
+                                placeholder={`Choice ${String.fromCharCode(65 + cIndex)} (use $math$ for LaTeX)`}
                                 className="w-full text-sm"
                               />
-                              <div className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 text-slate-800 dark:text-slate-200 text-sm overflow-x-auto whitespace-nowrap min-h-[38px] flex items-center">
-                                {choice.choice_detail ? renderTextWithMath(choice.choice_detail) : <span className="text-slate-400 text-xs">{t('question.preview')}</span>}
-                              </div>
+                              {(choice.choice_detail && choice.choice_detail.includes('$')) && (
+                                <div className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 text-slate-800 dark:text-slate-200 text-sm overflow-x-auto whitespace-nowrap min-h-[38px] flex items-center">
+                                  {choice.choice_detail ? renderTextWithMath(choice.choice_detail) : <span className="text-slate-400 text-xs">{t('question.preview')}</span>}
+                                </div>
+                              )}
                             </div>
                           </div>
                           <div className="pl-7">
