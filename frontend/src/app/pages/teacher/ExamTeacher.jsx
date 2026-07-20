@@ -10,6 +10,7 @@ import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { renderTextWithMath } from '../../component/QuestionComponents';
 import PaperPreviewModal from '../../component/PaperPreviewModal';
+import ConfirmModal from '../../component/ConfirmModal';
 
 const ExamTeacher = () => {
   const { t } = useTranslation();
@@ -55,6 +56,30 @@ const ExamTeacher = () => {
   const [examDetails, setExamDetails] = useState(null);
   const [examResults, setExamResults] = useState([]);
   const [actionLoading, setActionLoading] = useState(false);
+
+  const [confirmState, setConfirmState] = useState({
+    isOpen: false,
+    title: '',
+    message: '',
+    onConfirm: () => {},
+    isDanger: false,
+    confirmText: 'ยืนยัน',
+  });
+
+  const showConfirm = (options) => {
+    setConfirmState({
+      isOpen: true,
+      title: options.title || 'Confirm',
+      message: options.message || 'Are you sure?',
+      onConfirm: options.onConfirm || (() => {}),
+      isDanger: options.isDanger || false,
+      confirmText: options.confirmText || 'ยืนยัน',
+    });
+  };
+
+  const closeConfirm = () => {
+    setConfirmState(prev => ({ ...prev, isOpen: false }));
+  };
 
   // Edit form state
   const [editForm, setEditForm] = useState({
@@ -192,52 +217,59 @@ const ExamTeacher = () => {
       return;
     }
 
-    setSubmitting(true);
-    try {
-      const token = localStorage.getItem('token');
-      const res = await api.post('/api/teacher/exams/', {
-        name: modalForm.name,
-        description: modalForm.description,
-        exam_type: modalForm.exam_type,
-        courses: selectedCourses,
-        easy_count: Number(modalForm.easy_count),
-        medium_count: Number(modalForm.medium_count),
-        hard_count: Number(modalForm.hard_count),
-        duration: Number(modalForm.duration),
-        num_sets: Number(modalForm.num_sets) || 1,
-        date_exam: modalForm.exam_type === 'online' ? modalForm.date_exam : null,
-        time_start: modalForm.exam_type === 'online' ? modalForm.time_start : null,
-        time_end: modalForm.exam_type === 'online' ? modalForm.time_end : null
-      }, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      
-      fetchExams();
-      
-      if (modalForm.exam_type === 'paper') {
-        // Fetch generated exam details for preview
-        const examId = res.data.exam_id;
+    showConfirm({
+      title: 'ยืนยันการสร้างข้อสอบ',
+      message: 'คุณต้องการสร้างชุดข้อสอบตามรายละเอียดที่กำหนดใช่หรือไม่?',
+      confirmText: 'สร้างข้อสอบ',
+      onConfirm: async () => {
+        setSubmitting(true);
         try {
-          const detailRes = await api.get(`/api/teacher/exams/${examId}/`, {
+          const token = localStorage.getItem('token');
+          const res = await api.post('/api/teacher/exams/', {
+            name: modalForm.name,
+            description: modalForm.description,
+            exam_type: modalForm.exam_type,
+            courses: selectedCourses,
+            easy_count: Number(modalForm.easy_count),
+            medium_count: Number(modalForm.medium_count),
+            hard_count: Number(modalForm.hard_count),
+            duration: Number(modalForm.duration),
+            num_sets: Number(modalForm.num_sets) || 1,
+            date_exam: modalForm.exam_type === 'online' ? modalForm.date_exam : null,
+            time_start: modalForm.exam_type === 'online' ? modalForm.time_start : null,
+            time_end: modalForm.exam_type === 'online' ? modalForm.time_end : null
+          }, {
             headers: { Authorization: `Bearer ${token}` }
           });
-          setPaperExamData(detailRes.data);
-          setPaperSettings({ format: modalForm.export_format, columns: Number(modalForm.columns) });
-          setShowPaperPreview(true);
-        } catch (fetchErr) {
-          console.error('Failed to fetch paper exam details for preview:', fetchErr);
-          alert('Failed to load paper preview.');
+          
+          fetchExams();
+          
+          if (modalForm.exam_type === 'paper') {
+            // Fetch generated exam details for preview
+            const examId = res.data.exam_id;
+            try {
+              const detailRes = await api.get(`/api/teacher/exams/${examId}/`, {
+                headers: { Authorization: `Bearer ${token}` }
+              });
+              setPaperExamData(detailRes.data);
+              setPaperSettings({ format: modalForm.export_format, columns: Number(modalForm.columns) });
+              setShowPaperPreview(true);
+            } catch (fetchErr) {
+              console.error('Failed to fetch paper exam details for preview:', fetchErr);
+              alert('Failed to load paper preview.');
+            }
+          } else {
+            setShowModal(false);
+          }
+          
+        } catch (err) {
+          console.error(err);
+          setModalError(err.response?.data?.error || t('exam.errorCreate', 'Failed to create exam'));
+        } finally {
+          setSubmitting(false);
         }
-      } else {
-        setShowModal(false);
       }
-      
-    } catch (err) {
-      console.error(err);
-      setModalError(err.response?.data?.error || 'Failed to generate exam');
-    } finally {
-      setSubmitting(false);
-    }
+    });
   };
 
   const handleEditClick = async (exam) => {
@@ -266,17 +298,24 @@ const ExamTeacher = () => {
   };
 
   const handleEditSubmit = async () => {
-    try {
-      const token = localStorage.getItem('token');
-      await api.put(`/api/teacher/exams/${currentExam.online_exam_id}/`, editForm, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      setShowEditModal(false);
-      fetchExams();
-    } catch (err) {
-      console.error(err);
-      alert('Failed to update exam');
-    }
+    showConfirm({
+      title: 'ยืนยันการแก้ไข',
+      message: 'คุณต้องการบันทึกการเปลี่ยนแปลงนี้ใช่หรือไม่?',
+      confirmText: 'บันทึก',
+      onConfirm: async () => {
+        try {
+          const token = localStorage.getItem('token');
+          await api.put(`/api/teacher/exams/${currentExam.online_exam_id}/`, editForm, {
+            headers: { Authorization: `Bearer ${token}` }
+          });
+          setShowEditModal(false);
+          fetchExams();
+        } catch (err) {
+          console.error(err);
+          alert('Failed to update exam');
+        }
+      }
+    });
   };
 
   const handleViewClick = async (exam) => {
@@ -315,18 +354,24 @@ const ExamTeacher = () => {
   };
 
   const handleDeleteClick = async (exam) => {
-    if (window.confirm(t('exam.deleteExamConfirm', 'Are you sure you want to delete this exam?'))) {
-      try {
-        const token = localStorage.getItem('token');
-        await api.delete(`/api/teacher/exams/${exam.online_exam_id}/`, {
-          headers: { Authorization: `Bearer ${token}` }
-        });
-        fetchExams();
-      } catch (err) {
-        console.error(err);
-        alert('Failed to delete exam');
+    showConfirm({
+      title: 'ยืนยันการลบข้อสอบ',
+      message: 'คุณแน่ใจหรือไม่ว่าต้องการลบข้อสอบนี้? การกระทำนี้ไม่สามารถย้อนกลับได้',
+      isDanger: true,
+      confirmText: 'ลบข้อสอบ',
+      onConfirm: async () => {
+        try {
+          const token = localStorage.getItem('token');
+          await api.delete(`/api/teacher/exams/${exam.online_exam_id}/`, {
+            headers: { Authorization: `Bearer ${token}` }
+          });
+          fetchExams();
+        } catch (err) {
+          console.error(err);
+          alert('Failed to delete exam');
+        }
       }
-    }
+    });
   };
 
   const totalQuestions = Number(modalForm.easy_count) + Number(modalForm.medium_count) + Number(modalForm.hard_count);
@@ -1140,6 +1185,17 @@ const ExamTeacher = () => {
           initialColumns={paperSettings.columns}
         />
       )}
+
+      {/* Global Confirm Modal */}
+      <ConfirmModal
+        isOpen={confirmState.isOpen}
+        onClose={closeConfirm}
+        onConfirm={confirmState.onConfirm}
+        title={confirmState.title}
+        message={confirmState.message}
+        isDanger={confirmState.isDanger}
+        confirmText={confirmState.confirmText}
+      />
     </div>
   );
 };

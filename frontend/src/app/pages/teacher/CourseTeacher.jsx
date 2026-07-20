@@ -4,6 +4,7 @@ import api from '../../../utils/api';
 import { Book, Edit3, Trash2, Plus, X, User, Calendar, FileText, HelpCircle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
+import ConfirmModal from '../../component/ConfirmModal';
 
 const CourseTeacher = () => {
   const navigate = useNavigate();
@@ -25,19 +26,49 @@ const CourseTeacher = () => {
   const [submitError, setSubmitError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleDelete = async (chap_id) => {
-    if (!window.confirm('Are you sure you want to delete this course?')) return;
+  const [confirmState, setConfirmState] = useState({
+    isOpen: false,
+    title: '',
+    message: '',
+    onConfirm: () => {},
+    isDanger: false,
+    confirmText: 'ยืนยัน',
+  });
 
-    try {
-      const token = localStorage.getItem('token');
-      await api.delete(`/api/teacher/courses/${chap_id}/`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      fetchData();
-    } catch (err) {
-      console.error(err);
-      alert(err.response?.data?.error || 'Failed to delete course');
-    }
+  const showConfirm = (options) => {
+    setConfirmState({
+      isOpen: true,
+      title: options.title || 'Confirm',
+      message: options.message || 'Are you sure?',
+      onConfirm: options.onConfirm || (() => {}),
+      isDanger: options.isDanger || false,
+      confirmText: options.confirmText || 'ยืนยัน',
+    });
+  };
+
+  const closeConfirm = () => {
+    setConfirmState(prev => ({ ...prev, isOpen: false }));
+  };
+
+  const handleDelete = async (chap_id) => {
+    showConfirm({
+      title: 'ยืนยันการลบคอร์ส',
+      message: 'คุณแน่ใจหรือไม่ว่าต้องการลบคอร์สนี้? การกระทำนี้ไม่สามารถย้อนกลับได้',
+      isDanger: true,
+      confirmText: 'ลบคอร์ส',
+      onConfirm: async () => {
+        try {
+          const token = localStorage.getItem('token');
+          await api.delete(`/api/teacher/courses/${chap_id}/`, {
+            headers: { Authorization: `Bearer ${token}` }
+          });
+          fetchData();
+        } catch (err) {
+          console.error(err);
+          alert(err.response?.data?.error || 'Failed to delete course');
+        }
+      }
+    });
   };
 
   const openEditModal = (course) => {
@@ -338,6 +369,17 @@ const CourseTeacher = () => {
           </div>
         </div>
       )}
+
+      {/* Global Confirm Modal */}
+      <ConfirmModal
+        isOpen={confirmState.isOpen}
+        onClose={closeConfirm}
+        onConfirm={confirmState.onConfirm}
+        title={confirmState.title}
+        message={confirmState.message}
+        isDanger={confirmState.isDanger}
+        confirmText={confirmState.confirmText}
+      />
     </div>
   );
 };
