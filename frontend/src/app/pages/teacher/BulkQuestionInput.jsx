@@ -16,12 +16,13 @@ const BulkQuestionInput = () => {
   const [ocrMode, setOcrMode] = useState('text');
   const [ocrLoadingId, setOcrLoadingId] = useState(null);
 
+  const [globalChapId, setGlobalChapId] = useState('');
+
   const [sharedScenario, setSharedScenario] = useState({ text: '', image_url: '' });
 
   // We start with one empty question
   const [questions, setQuestions] = useState([{
     id: 1, // temporary local id
-    chap_id: '',
     qt_diff_lv: 'Medium',
     qt_detail: '',
     qt_image_url: '',
@@ -52,13 +53,12 @@ const BulkQuestionInput = () => {
 
   const addQuestion = () => {
     const newId = questions.length > 0 ? Math.max(...questions.map(q => q.id)) + 1 : 1;
-    // By default, inherit course and difficulty from the last question if available
+    // By default, inherit difficulty from the last question if available
     const lastQ = questions[questions.length - 1];
     setQuestions([
       ...questions,
       {
         id: newId,
-        chap_id: lastQ ? lastQ.chap_id : '',
         qt_diff_lv: lastQ ? lastQ.qt_diff_lv : 'Medium',
         qt_detail: '',
         qt_image_url: '',
@@ -150,7 +150,7 @@ const BulkQuestionInput = () => {
 
   // Metrics calculation
   const isQuestionComplete = (q) => {
-    return q.chap_id && q.qt_detail && q.choices.every(c => c.choice_detail.trim() !== '') && q.choices.some(c => c.choice_correct);
+    return globalChapId !== '' && q.qt_detail && q.choices.every(c => c.choice_detail.trim() !== '') && q.choices.some(c => c.choice_correct);
   };
 
   const completedCount = questions.filter(isQuestionComplete).length;
@@ -168,7 +168,10 @@ const BulkQuestionInput = () => {
 
     try {
       const token = localStorage.getItem('token');
-      const validQuestions = questions.filter(isQuestionComplete).map(({ id, ...rest }) => rest);
+      const validQuestions = questions.filter(isQuestionComplete).map(({ id, chap_id, ...rest }) => ({
+        ...rest,
+        chap_id: globalChapId
+      }));
 
       await api.post('/api/teacher/questions/bulk/', {
         questions: validQuestions,
@@ -252,6 +255,28 @@ const BulkQuestionInput = () => {
         </div>
       </div>
 
+      {/* Global Course Selection */}
+      <div className="max-w-6xl mx-auto px-6 mt-8">
+        <div className="p-6 bg-white dark:bg-slate-800 rounded-xl border border-blue-200 dark:border-blue-900/50 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div>
+            <h2 className="text-lg font-bold text-slate-800 dark:text-white">{t('question.course')}</h2>
+            <p className="text-sm text-slate-500 dark:text-slate-400">เลือกวิชาเพียงครั้งเดียว สำหรับทุกข้อในชุดนี้</p>
+          </div>
+          <div className="w-full md:w-1/3">
+            <select
+              value={globalChapId}
+              onChange={(e) => setGlobalChapId(e.target.value)}
+              className="w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all text-sm bg-white dark:bg-slate-900 text-slate-800 dark:text-white"
+            >
+              <option value="" disabled>{t('question.selectCourse')}</option>
+              {courses.map(c => (
+                <option key={c.chap_id} value={c.chap_id}>{c.chap_name}</option>
+              ))}
+            </select>
+          </div>
+        </div>
+      </div>
+
       {/* Global Shared Scenario */}
       <div className="max-w-6xl mx-auto px-6 mt-8">
         <div className="p-6 bg-white dark:bg-slate-800 rounded-xl border border-blue-200 dark:border-blue-900/50 shadow-sm space-y-4">
@@ -309,20 +334,7 @@ const BulkQuestionInput = () => {
               </div>
 
               <div className="p-6">
-                <div className="grid grid-cols-2 gap-6 mb-6">
-                  <div>
-                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">{t('question.course')}</label>
-                    <select
-                      value={q.chap_id}
-                      onChange={(e) => updateQuestion(q.id, 'chap_id', e.target.value)}
-                      className="w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all text-sm bg-white dark:bg-slate-900 text-slate-800 dark:text-white"
-                    >
-                      <option value="" disabled>{t('question.selectCourse')}</option>
-                      {courses.map(c => (
-                        <option key={c.chap_id} value={c.chap_id}>{c.chap_name}</option>
-                      ))}
-                    </select>
-                  </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
                   <div>
                     <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">{t('question.difficulty')}</label>
                     <select

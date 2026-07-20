@@ -23,6 +23,8 @@ const ExamTeacher = () => {
   const [showModal, setShowModal] = useState(false);
   const [courses, setCourses] = useState([]);
   const [selectedCourses, setSelectedCourses] = useState([]);
+  const [isSubjectDropdownOpen, setIsSubjectDropdownOpen] = useState(false);
+  const [selectedSubjectsFilter, setSelectedSubjectsFilter] = useState([]);
   const [modalForm, setModalForm] = useState({
     name: '',
     description: '',
@@ -134,6 +136,8 @@ const ExamTeacher = () => {
       easy_count: 0, medium_count: 0, hard_count: 0, duration: 0, num_sets: 1
     });
     setSelectedCourses([]);
+    setSelectedSubjectsFilter([]);
+    setIsSubjectDropdownOpen(false);
     setAvailableCounts({ easy: 0, medium: 0, hard: 0 });
     setModalError('');
     setShowModal(true);
@@ -144,6 +148,14 @@ const ExamTeacher = () => {
       prev.includes(chap_id) ? prev.filter(id => id !== chap_id) : [...prev, chap_id]
     );
   };
+
+  const toggleSubjectFilter = (sjName) => {
+    setSelectedSubjectsFilter(prev => 
+      prev.includes(sjName) ? prev.filter(s => s !== sjName) : [...prev, sjName]
+    );
+  };
+
+  const uniqueSubjects = [...new Set(courses.map(c => c.sj_name || 'Other'))];
 
   const handleModalInput = (e) => {
     const { name, value } = e.target;
@@ -199,7 +211,7 @@ const ExamTeacher = () => {
       }, {
         headers: { Authorization: `Bearer ${token}` }
       });
-      setShowModal(false);
+      
       fetchExams();
       
       if (modalForm.exam_type === 'paper') {
@@ -216,6 +228,8 @@ const ExamTeacher = () => {
           console.error('Failed to fetch paper exam details for preview:', fetchErr);
           alert('Failed to load paper preview.');
         }
+      } else {
+        setShowModal(false);
       }
       
     } catch (err) {
@@ -542,30 +556,87 @@ const ExamTeacher = () => {
 
               {/* Sources / Course */}
               <div>
-                <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">{t('exam.sourcesCourse', 'Sources / Course (Select one or more)')}</label>
-                <div className="flex flex-wrap gap-2 mb-2">
-                  {courses.map(c => {
-                    const isSelected = selectedCourses.includes(c.chap_id);
-                    return (
-                      <button
-                        key={c.chap_id}
-                        type="button"
-                        onClick={() => toggleCourse(c.chap_id)}
-                        className={`px-3 py-1.5 rounded-lg text-sm font-medium border transition-all ${isSelected
-                          ? 'bg-zense-navy dark:bg-blue-600 text-white border-zense-navy dark:border-blue-600'
-                          : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:border-blue-300 dark:hover:border-blue-600'
-                          }`}
+                <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">{t('exam.sourcesCourse', 'Sources / Course (Select one or more)')}</label>
+                
+                {courses.length === 0 ? (
+                  <span className="text-sm text-slate-400">{t('exam.noCoursesAvailable', 'No courses available')}</span>
+                ) : (
+                  <>
+                    <div className="relative mb-3">
+                      <div 
+                        onClick={() => setIsSubjectDropdownOpen(!isSubjectDropdownOpen)}
+                        className="w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-800 dark:text-white text-sm cursor-pointer flex justify-between items-center hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
                       >
-                        {c.chap_name}
-                      </button>
-                    );
-                  })}
-                  {courses.length === 0 && (
-                    <span className="text-sm text-slate-400">{t('exam.noCoursesAvailable', 'No courses available')}</span>
-                  )}
-                </div>
+                        <span>
+                          {selectedSubjectsFilter.length === 0 
+                            ? 'เลือกวิชาทั้งหมด (All Subjects)' 
+                            : `เลือกแล้ว ${selectedSubjectsFilter.length} วิชา`}
+                        </span>
+                        <svg className={`w-4 h-4 text-slate-400 transition-transform ${isSubjectDropdownOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
+                      </div>
+                      
+                      {isSubjectDropdownOpen && (
+                        <div className="absolute z-10 w-full mt-1 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl shadow-lg max-h-48 overflow-y-auto custom-scrollbar">
+                          {uniqueSubjects.map(sjName => (
+                            <label key={sjName} className="flex items-center gap-3 px-4 py-3 hover:bg-slate-50 dark:hover:bg-slate-700 cursor-pointer border-b border-slate-100 dark:border-slate-700 last:border-0">
+                              <input 
+                                type="checkbox" 
+                                checked={selectedSubjectsFilter.includes(sjName)}
+                                onChange={() => toggleSubjectFilter(sjName)}
+                                className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+                              />
+                              <span className="text-sm font-medium text-slate-700 dark:text-slate-300">{sjName}</span>
+                            </label>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                    <div className="space-y-4 mb-2 max-h-64 overflow-y-auto custom-scrollbar pr-2">
+                      {Object.entries(
+                        courses.filter(c => {
+                          if (selectedSubjectsFilter.length === 0) return true;
+                          return selectedSubjectsFilter.includes(c.sj_name || 'Other');
+                        }).reduce((acc, c) => {
+                          const sjName = c.sj_name || 'Other';
+                          if (!acc[sjName]) acc[sjName] = [];
+                          acc[sjName].push(c);
+                          return acc;
+                        }, {})
+                      ).map(([sjName, sjCourses]) => (
+                        <div key={sjName} className="bg-slate-50 dark:bg-slate-800/50 p-4 rounded-xl border border-slate-100 dark:border-slate-700 shadow-sm">
+                          <div className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-3">{sjName}</div>
+                          <div className="flex flex-wrap gap-2">
+                            {sjCourses.map(c => {
+                              const isSelected = selectedCourses.includes(c.chap_id);
+                              return (
+                                <button
+                                  key={c.chap_id}
+                                  type="button"
+                                  onClick={() => toggleCourse(c.chap_id)}
+                                  className={`px-3 py-1.5 rounded-lg text-sm font-medium border transition-all ${isSelected
+                                    ? 'bg-zense-navy dark:bg-blue-600 text-white border-zense-navy dark:border-blue-600 shadow-sm'
+                                    : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:border-blue-300 dark:hover:border-blue-600'
+                                    }`}
+                                >
+                                  {c.chap_name}
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      ))}
+                      
+                      {courses.filter(c => {
+                          if (selectedSubjectsFilter.length === 0) return true;
+                          return selectedSubjectsFilter.includes(c.sj_name || 'Other');
+                        }).length === 0 && (
+                          <div className="text-center py-6 text-sm text-slate-500">ไม่พบวิชาที่เลือก</div>
+                      )}
+                    </div>
+                  </>
+                )}
                 {selectedCourses.length === 0 && (
-                  <p className="text-xs text-red-500">{t('exam.pleaseSelectCourse', 'Please select at least one course to draw questions from.')}</p>
+                  <p className="text-xs text-red-500 mt-1">{t('exam.pleaseSelectCourse', 'Please select at least one course to draw questions from.')}</p>
                 )}
               </div>
 

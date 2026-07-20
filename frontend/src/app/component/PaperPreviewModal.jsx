@@ -8,14 +8,14 @@ function stringToSeed(str) {
   if (!str) return 0;
   let h = 1779033703 ^ str.length;
   for (let i = 0; i < str.length; i++) {
-      h = Math.imul(h ^ str.charCodeAt(i), 3432918353);
-      h = h << 13 | h >>> 19;
+    h = Math.imul(h ^ str.charCodeAt(i), 3432918353);
+    h = h << 13 | h >>> 19;
   }
   return h;
 }
 
 function mulberry32(a) {
-  return function() {
+  return function () {
     var t = a += 0x6D2B79F5;
     t = Math.imul(t ^ t >>> 15, t | 1);
     t ^= t + Math.imul(t ^ t >>> 7, t | 61);
@@ -48,7 +48,7 @@ const PaperPreviewModal = ({
 
   // Cover settings state
   const [university, setUniversity] = useState('มหาวิทยาลัยมหาสารคาม');
-  const [faculty, setFaculty] = useState('สำนักศึกษาทั่วไป (Office of General Education)');
+  const [faculty, setFaculty] = useState('สาขาเทคโนโลยีสารสนเทศ คณะวิทยาการสารสนเทศ');
   const [semester, setSemester] = useState('');
   const [academicYear, setAcademicYear] = useState('');
 
@@ -61,7 +61,7 @@ const PaperPreviewModal = ({
     // Group questions by scenario (group.id) to prevent identical scenarios from being split
     const blocks = [];
     const grouped = {};
-    
+
     examData.questions.forEach(q => {
       if (!q.group) {
         blocks.push({ type: 'single', id: q.id, items: [q] });
@@ -76,17 +76,17 @@ const PaperPreviewModal = ({
 
     // Shuffle blocks using a seeded randomizer so Set X is always consistent
     if (examData.id && numSets > 1) {
-       const seedBase = stringToSeed(examData.id) + currentSet;
-       const random = mulberry32(seedBase);
-       for (let i = blocks.length - 1; i > 0; i--) {
-           const j = Math.floor(random() * (i + 1));
-           [blocks[i], blocks[j]] = [blocks[j], blocks[i]];
-       }
+      const seedBase = stringToSeed(examData.id) + currentSet;
+      const random = mulberry32(seedBase);
+      for (let i = blocks.length - 1; i > 0; i--) {
+        const j = Math.floor(random() * (i + 1));
+        [blocks[i], blocks[j]] = [blocks[j], blocks[i]];
+      }
     }
 
     const result = [];
     let currentIndex = 1;
-    
+
     blocks.forEach(block => {
       if (block.type === 'single') {
         result.push(block.items[0]);
@@ -153,7 +153,7 @@ const PaperPreviewModal = ({
         let currentCols = columns === 1 ? [[]] : [[], []];
         let currentHeight = 0;
         let currentColIdx = 0;
-        
+
         // Use a larger buffer for DOCX because MS Word rendering differs from Chrome
         const safetyBuffer = format === 'docx' ? 80 : 10;
 
@@ -553,13 +553,13 @@ const PaperPreviewModal = ({
   const ANSWER_COLS = 4;
   const ANSWER_ROWS = 25; // 25 rows per page fits nicely in A4
   const ITEMS_PER_PAGE = ANSWER_COLS * ANSWER_ROWS;
-  
+
   const answerPages = [];
   if (sortedQuestions && sortedQuestions.length > 0) {
     for (let p = 0; p < sortedQuestions.length; p += ITEMS_PER_PAGE) {
       const pageQuestions = sortedQuestions.slice(p, p + ITEMS_PER_PAGE);
       const tableRows = [];
-      
+
       for (let r = 0; r < ANSWER_ROWS; r++) {
         const row = [];
         let hasData = false;
@@ -620,7 +620,7 @@ const PaperPreviewModal = ({
                 <Columns size={14} /> 2
               </button>
             </div>
-            
+
             {numSets > 1 && (
               <>
                 <div className="h-6 w-px bg-slate-300 dark:bg-slate-600 mx-2"></div>
@@ -631,7 +631,7 @@ const PaperPreviewModal = ({
                     className="bg-transparent text-sm font-medium px-2 py-1 text-slate-700 dark:text-slate-300 outline-none cursor-pointer"
                   >
                     {Array.from({ length: numSets }).map((_, i) => (
-                      <option key={i+1} value={i+1}>ชุดที่ {i+1}</option>
+                      <option key={i + 1} value={i + 1}>ชุดที่ {i + 1}</option>
                     ))}
                   </select>
                 </div>
@@ -805,23 +805,23 @@ const PaperPreviewModal = ({
                   </div>
                 ))}
               </div>
-              
+
               {/* ANSWER KEY PRINTABLE AREA (Separated from exam) */}
               {(!isMeasuring && answerPages.length > 0) && (
                 <div className="mt-8 pt-8 border-t-2 border-dashed border-gray-400 flex flex-col items-center">
                   <div className="bg-blue-100 text-blue-800 font-bold px-4 py-2 rounded-lg mb-8 text-xl">ส่วนของเฉลย (แยกส่งออกไฟล์ต่างหาก)</div>
-                  
+
                   <div ref={answerPrintRef} className="print-area text-black" style={{ fontFamily: '"TH SarabunPSK", "Sarabun", "TH Sarabun New", sans-serif', fontSize: '18px', color: 'black' }}>
                     {answerPages.map((tableRows, pIdx) => (
                       <div key={`ans-page-${pIdx}`} className="a4-page answer-key-page bg-white shadow-xl mx-auto mb-8 text-left" style={{ width: `${PAGE_WIDTH}px`, height: `${PAGE_HEIGHT}px`, padding: `${MARGIN}px`, boxSizing: 'border-box' }}>
-                        
+
                         <div className="flex justify-between items-center mb-6 text-gray-500 border-b border-gray-300 pb-2 text-sm">
                           <div>เฉลยข้อสอบ {courseCode} {courseName}</div>
                           <div>หน้าเฉลย {pIdx + 1} / {answerPages.length}</div>
                         </div>
 
                         <h2 className="text-2xl font-bold mb-6 text-center">เฉลยข้อสอบ</h2>
-                        
+
                         <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '18px' }}>
                           <tbody>
                             {tableRows.map((row, rIdx) => (
