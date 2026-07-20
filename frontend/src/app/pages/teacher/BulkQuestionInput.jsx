@@ -28,6 +28,8 @@ const BulkQuestionInput = () => {
     qt_image_url: '',
     choices: [
       { choice_detail: '', choice_image_url: '', choice_correct: false },
+      { choice_detail: '', choice_image_url: '', choice_correct: false },
+      { choice_detail: '', choice_image_url: '', choice_correct: false },
       { choice_detail: '', choice_image_url: '', choice_correct: false }
     ]
   }]);
@@ -63,6 +65,8 @@ const BulkQuestionInput = () => {
         qt_detail: '',
         qt_image_url: '',
         choices: [
+          { choice_detail: '', choice_image_url: '', choice_correct: false },
+          { choice_detail: '', choice_image_url: '', choice_correct: false },
           { choice_detail: '', choice_image_url: '', choice_correct: false },
           { choice_detail: '', choice_image_url: '', choice_correct: false }
         ]

@@ -63,7 +63,8 @@ class ProfileService:
                     'email': student.std_email,
                     'role': 'Student',
                     'full_name': student.std_name,
-                    'student_id': student.std_id
+                    'student_id': student.std_id,
+                    'is_google_account': not bool(student.std_pass)
                 }
             elif role == 'Teacher':
                 teacher = Teacher.objects.filter(teacher_id=uid).first()
@@ -78,7 +79,8 @@ class ProfileService:
                     'email': teacher.t_email,
                     'role': 'Teacher',
                     'full_name': teacher.t_name,
-                    'teacher_id': teacher.teacher_id
+                    'teacher_id': teacher.teacher_id,
+                    'is_google_account': not bool(teacher.t_pass)
                 }
         except Exception:
             return None

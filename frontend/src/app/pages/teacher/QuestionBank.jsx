@@ -37,6 +37,8 @@ const QuestionBank = () => {
     shared_image_url: '',
     choices: [
       { choice_detail: '', choice_image_url: '', choice_correct: false },
+      { choice_detail: '', choice_image_url: '', choice_correct: false },
+      { choice_detail: '', choice_image_url: '', choice_correct: false },
       { choice_detail: '', choice_image_url: '', choice_correct: false }
     ]
   });
@@ -178,6 +180,8 @@ const QuestionBank = () => {
         shared_text: '', shared_image_url: '',
         choices: [
           { choice_detail: '', choice_image_url: '', choice_correct: false },
+          { choice_detail: '', choice_image_url: '', choice_correct: false },
+          { choice_detail: '', choice_image_url: '', choice_correct: false },
           { choice_detail: '', choice_image_url: '', choice_correct: false }
         ]
       });
@@ -265,6 +269,8 @@ const QuestionBank = () => {
                 chap_id: '', qt_diff_lv: 'Medium', qt_detail: '', qt_image_url: '',
                 shared_text: '', shared_image_url: '',
                 choices: [
+                  { choice_detail: '', choice_image_url: '', choice_correct: false },
+                  { choice_detail: '', choice_image_url: '', choice_correct: false },
                   { choice_detail: '', choice_image_url: '', choice_correct: false },
                   { choice_detail: '', choice_image_url: '', choice_correct: false }
                 ]
