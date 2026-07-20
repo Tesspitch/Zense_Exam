@@ -1,5 +1,5 @@
 from django.urls import path
-from api.views.auth import login_views, signup_views
+from api.views.auth import login_views, signup_views, google_views
 from api.views.student import student_views, join_exam_views, student_exam_views
 from api.views.teacher import teacher_views, subject_views, course_views, question_views, exam_views
 from api.views.common import profile_views, upload_views
@@ -7,6 +7,7 @@ from api.views.common import profile_views, upload_views
 urlpatterns = [
         path('login/', login_views.login_view, name='login'),
         path('signup/', signup_views.signup_view, name='signup'),
+        path('google-login/', google_views.google_login_view, name='google-login'),
         
         path('student/dashboard/', student_views.get_student_dashboard, name='student_dashboard'),
         path('join_exam/', join_exam_views.join_exam, name='join_exam'),

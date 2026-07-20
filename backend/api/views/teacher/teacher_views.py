@@ -53,7 +53,7 @@ def get_teacher_dashboard(request):
 				
 		average_score = round(total_percentage_sum / total_results_count, 1) if total_results_count > 0 else 0
 
-		recent_exams_qs = Online_exam.objects.filter(teacher_id=teacher).order_by('-online_exam_create')[:5]
+		recent_exams_qs = Online_exam.objects.filter(teacher_id=teacher, online_exam_is_active=True).order_by('-online_exam_create')[:5]
 		recent_exams = []
 		for ex in recent_exams_qs:
 				detail = detail_online_exam.objects.filter(online_exam_id=ex).order_by('-date_exam').first()

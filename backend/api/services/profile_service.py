@@ -102,8 +102,23 @@ class ProfileService:
                 full = (first + ' ' + last).strip() if (first or last) else student.std_name
                 student.std_name = full
                 student.std_email = data.get('email', student.std_email)
-                student.save()
-                return True, 'อัปเดตข้อมูลสำเร็จ'
+                
+                new_id = data.get('user_id')
+                id_changed = False
+                if new_id and str(new_id) != str(student.std_id):
+                    if Student.objects.filter(std_id=new_id).exists():
+                        return False, 'รหัสประจำตัวนี้มีอยู่ในระบบแล้ว'
+                    # Use update() to change primary key without creating a new record
+                    Student.objects.filter(std_id=student.std_id).update(
+                        std_id=new_id,
+                        std_name=student.std_name,
+                        std_email=student.std_email
+                    )
+                    id_changed = True
+                else:
+                    student.save()
+                    
+                return True, {'message': 'อัปเดตข้อมูลสำเร็จ', 'new_id': new_id if id_changed else None}
 
             elif role == 'Teacher':
                 teacher = Teacher.objects.filter(teacher_id=uid).first()
@@ -114,8 +129,22 @@ class ProfileService:
                 full = (first + ' ' + last).strip() if (first or last) else teacher.t_name
                 teacher.t_name = full
                 teacher.t_email = data.get('email', teacher.t_email)
-                teacher.save()
-                return True, 'อัปเดตข้อมูลสำเร็จ'
+                
+                new_id = data.get('user_id')
+                id_changed = False
+                if new_id and str(new_id) != str(teacher.teacher_id):
+                    if Teacher.objects.filter(teacher_id=new_id).exists():
+                        return False, 'รหัสประจำตัวนี้มีอยู่ในระบบแล้ว'
+                    Teacher.objects.filter(teacher_id=teacher.teacher_id).update(
+                        teacher_id=new_id,
+                        t_name=teacher.t_name,
+                        t_email=teacher.t_email
+                    )
+                    id_changed = True
+                else:
+                    teacher.save()
+                    
+                return True, {'message': 'อัปเดตข้อมูลสำเร็จ', 'new_id': new_id if id_changed else None}
 
             return False, 'Invalid role'
         except Exception as e:

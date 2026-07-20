@@ -7,6 +7,7 @@ import { useTranslation } from 'react-i18next';
 const EditProfileModal = ({ profile, userRole, onClose, onSuccess }) => {
   const { t } = useTranslation();
   const [formData, setFormData] = useState({
+    user_id: userRole === 'Student' ? profile.student_id : profile.teacher_id,
     first_name: profile.first_name,
     last_name: profile.last_name,
     email: profile.email
@@ -22,14 +23,17 @@ const EditProfileModal = ({ profile, userRole, onClose, onSuccess }) => {
         ? 'http://localhost:8000/api/student/profile/' 
         : 'http://localhost:8000/api/teacher/profile/';
       
-      await axios.put(endpoint, formData, {
+      const response = await axios.put(endpoint, formData, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
+      if (response.data && response.data.token) {
+        localStorage.setItem('token', response.data.token);
+      }
       onSuccess(); // รีโหลดข้อมูลหน้าหลัก
     } catch (err) {
         console.error("Update profile error:", err); 
   
-        alert("เกิดข้อผิดพลาดในการอัปเดตข้อมูล");
+        alert(err.response?.data?.error || "เกิดข้อผิดพลาดในการอัปเดตข้อมูล");
     } finally {
       setLoading(false);
     }
@@ -46,6 +50,16 @@ const EditProfileModal = ({ profile, userRole, onClose, onSuccess }) => {
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-6">
+            <div className="space-y-2">
+              <label className="text-sm font-bold text-slate-500 dark:text-slate-400 pl-1">รหัสประจำตัว (Identification Code)</label>
+              <input 
+                className="w-full px-5 py-3.5 bg-slate-50 dark:bg-slate-900 border border-slate-100 dark:border-slate-700 rounded-2xl focus:ring-2 focus:ring-zense-navy dark:focus:ring-blue-500 outline-none text-slate-800 dark:text-white transition-colors"
+                value={formData.user_id || ''}
+                onChange={(e) => setFormData({...formData, user_id: e.target.value})}
+                required
+                maxLength={11}
+              />
+            </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <label className="text-sm font-bold text-slate-500 dark:text-slate-400 pl-1">First Name</label>

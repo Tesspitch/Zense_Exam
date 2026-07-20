@@ -106,6 +106,13 @@ const Profile = ({ userRole }) => {
               </label>
               <p className="text-lg font-bold text-slate-700 dark:text-white pl-1">{profile?.email || 'ไม่พบข้อมูล'}</p>
             </div>
+            <div className="space-y-2">
+              <label className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-[0.2em] flex items-center gap-2">
+                <User size={14} className="text-slate-300 dark:text-slate-600" /> Identification Code (รหัสประจำตัว)
+              </label>
+              <p className="text-lg font-bold text-slate-700 dark:text-white pl-1">{profile?.student_id || profile?.teacher_id || 'ไม่พบข้อมูล'}</p>
+            </div>
+
           </div>
         </div>
 

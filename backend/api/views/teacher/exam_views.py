@@ -103,6 +103,7 @@ def teacher_exams(request):
                     'online_exam_pass': ex.online_exam_pass,
                     'online_exam_name': ex.online_exam_name,
                     'is_active': ex.online_exam_is_active,
+                    'exam_type': 'online' if ex.online_exam_is_active else 'paper',
                     'status': status,
                     'sources': ', '.join(list(sources)) if sources else 'No sources',
                     'description': description,

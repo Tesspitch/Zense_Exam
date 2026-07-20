@@ -6,6 +6,8 @@ from django.views.decorators.csrf import csrf_exempt
 from api.services.profile_service import ProfileService
 
 
+from api.services.auth_service import generate_jwt_token
+
 def _decode_auth(request):
     auth_header = request.headers.get('Authorization')
     if not auth_header or not auth_header.startswith('Bearer '):
@@ -40,8 +42,17 @@ def student_profile_api(request):
         user_id = decoded.get('user_id')
         role = decoded.get('role')
         body = json.loads(request.body)
-        success, msg = ProfileService.update_profile_by_identity(user_id, role, body)
-        return JsonResponse({'message': msg} if success else {'error': msg}, status=200 if success else 400)
+        success, result = ProfileService.update_profile_by_identity(user_id, role, body)
+        
+        if success:
+            response_data = {'message': result['message']}
+            if result.get('new_id'):
+                # Generate new token with the new ID
+                new_token = generate_jwt_token(result['new_id'], role)
+                response_data['token'] = new_token
+            return JsonResponse(response_data, status=200)
+        else:
+            return JsonResponse({'error': result}, status=400)
 
 # --- สำหรับอาจารย์ ---
 @csrf_exempt
@@ -64,8 +75,16 @@ def teacher_profile_api(request):
         user_id = decoded.get('user_id')
         role = decoded.get('role')
         body = json.loads(request.body)
-        success, msg = ProfileService.update_profile_by_identity(user_id, role, body)
-        return JsonResponse({'message': msg} if success else {'error': msg}, status=200 if success else 400)
+        success, result = ProfileService.update_profile_by_identity(user_id, role, body)
+        
+        if success:
+            response_data = {'message': result['message']}
+            if result.get('new_id'):
+                new_token = generate_jwt_token(result['new_id'], role)
+                response_data['token'] = new_token
+            return JsonResponse(response_data, status=200)
+        else:
+            return JsonResponse({'error': result}, status=400)
 
 # --- ใช้ร่วมกันได้ (เปลี่ยนรหัสผ่าน) ---
 @csrf_exempt

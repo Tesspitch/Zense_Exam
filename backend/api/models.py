@@ -4,7 +4,7 @@ class Teacher(models.Model):
     teacher_id = models.CharField(max_length=11, primary_key=True) 
     t_name = models.CharField(max_length=100) 
     t_email = models.CharField(max_length=100) 
-    t_pass = models.CharField(max_length=100) 
+    t_pass = models.CharField(max_length=100, null=True, blank=True) 
     role = models.CharField(max_length=20) 
 
     class Meta:
@@ -15,7 +15,7 @@ class Student(models.Model):
     online_exam_id = models.CharField(max_length=50, null=True, blank=True) 
     std_name = models.CharField(max_length=100) 
     std_email = models.CharField(max_length=100) 
-    std_pass = models.CharField(max_length=100) 
+    std_pass = models.CharField(max_length=100, null=True, blank=True) 
     role = models.CharField(max_length=20) 
 
     class Meta:

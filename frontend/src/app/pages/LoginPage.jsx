@@ -4,6 +4,7 @@ import api from '../../utils/api';
 import { GraduationCap, UserCheck } from 'lucide-react';
 // เพิ่ม useNavigate เข้ามาเพื่อใช้เปลี่ยนหน้า
 import { Link, useNavigate } from 'react-router-dom'; 
+import { GoogleOAuthProvider, GoogleLogin } from '@react-oauth/google';
 import { useTranslation } from 'react-i18next';
 import logo from '../assets/zense-bg.png';
 
@@ -46,8 +47,34 @@ const LoginPage = () => {
     }
   };
 
+  const handleGoogleSuccess = async (credentialResponse) => {
+    setError('');
+    try {
+      const response = await api.post('/api/google-login/', {
+        credential: credentialResponse.credential,
+        role: role
+      });
+      
+      const { token, role: userRole } = response.data;
+      
+      if (token) {
+        localStorage.setItem('token', token);
+      }
+      
+      if (userRole === 'Student') {
+        navigate('/student/dashboard');
+      } else if (userRole === 'Teacher') {
+        navigate('/teacher/dashboard');
+      }
+
+    } catch (err) {
+      setError(err.response?.data?.error || 'Google login failed');
+    }
+  };
+
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-zense-light dark:bg-slate-900 p-6 font-sans transition-colors">
+    <GoogleOAuthProvider clientId="431269906470-cr9ti9r4umgsbcsgp7l083vkr8rs91ab.apps.googleusercontent.com">
+      <div className="min-h-screen flex flex-col items-center justify-center bg-zense-light dark:bg-slate-900 p-6 font-sans transition-colors">
       
       {/* Header */}
       <div className="flex flex-col items-center mb-8 md:mb-10 text-center animate-in fade-in zoom-in duration-500">
@@ -129,6 +156,25 @@ const LoginPage = () => {
           </button>
         </form>
 
+        <div className="relative mt-6">
+          <div className="absolute inset-0 flex items-center">
+            <div className="w-full border-t border-slate-200 dark:border-slate-700"></div>
+          </div>
+          <div className="relative flex justify-center text-sm">
+            <span className="px-2 bg-white dark:bg-slate-800 text-slate-500">Or continue with</span>
+          </div>
+        </div>
+
+        <div className="mt-6 flex justify-center">
+          <GoogleLogin
+            onSuccess={handleGoogleSuccess}
+            onError={() => {
+              setError('Google login was unsuccessful. Please try again.');
+            }}
+            useOneTap={false}
+          />
+        </div>
+
         <div className="mt-8 text-center space-y-4">
           <p className="text-sm text-slate-500 dark:text-slate-400">
             Don't have an account? <Link to="/signup" className="text-zense-navy dark:text-blue-400 font-bold cursor-pointer hover:underline">Create account</Link>
@@ -139,6 +185,7 @@ const LoginPage = () => {
         </div>
       </div>
     </div>
+    </GoogleOAuthProvider>
   );
 };
 

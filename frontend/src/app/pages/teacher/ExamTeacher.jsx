@@ -417,13 +417,24 @@ const ExamTeacher = () => {
                   <div className="flex items-center gap-3 flex-wrap">
                     <h3 className="font-bold text-xl text-slate-800 dark:text-white">{exam.online_exam_name}</h3>
                     <span className="px-2.5 py-1 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 text-xs font-medium rounded-lg border border-slate-200 dark:border-slate-700 flex items-center gap-1.5">
-                      <Laptop size={14} />
-                      {t('exam.online', 'Online')}
+                      {exam.exam_type === 'paper' ? (
+                        <>
+                          <Printer size={14} />
+                          {t('exam.paperExam', 'Paper')}
+                        </>
+                      ) : (
+                        <>
+                          <Laptop size={14} />
+                          {t('exam.online', 'Online')}
+                        </>
+                      )}
                     </span>
                   </div>
-                  <span className={`px-2.5 py-1 text-xs font-medium rounded-lg ${exam.status === 'Active' ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400' : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300'}`}>
-                    {exam.status}
-                  </span>
+                  {exam.exam_type !== 'paper' && (
+                    <span className={`px-2.5 py-1 text-xs font-medium rounded-lg ${exam.status === 'Active' ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400' : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300'}`}>
+                      {exam.status}
+                    </span>
+                  )}
                 </div>
 
                 {/* Sources & Description */}
@@ -436,24 +447,34 @@ const ExamTeacher = () => {
 
                 {/* Schedule & Copy Code */}
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
-                  <div className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-400">
-                    <Calendar size={16} />
-                    <span>{exam.schedule || t('exam.noSchedule', 'No schedule set')}</span>
-                  </div>
-
-                  <div className="flex items-center justify-between sm:justify-start gap-4 bg-slate-50 dark:bg-slate-800/50 px-4 py-2 rounded-xl border border-slate-100 dark:border-slate-800">
-                    <div>
-                      <span className="text-[10px] uppercase font-bold text-slate-400 dark:text-slate-500 tracking-wider block mb-0.5">{t('exam.examCode', 'Exam Code')}</span>
-                      <span className="font-bold text-zense-navy dark:text-blue-400 tracking-wide">{exam.online_exam_pass}</span>
+                  {exam.exam_type === 'paper' ? (
+                    <div className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-400">
+                      <FileText size={16} />
+                      <span>{t('exam.paperExamGenerated', 'Paper exam generated')}</span>
                     </div>
-                    <button
-                      onClick={() => handleCopyCode(exam.online_exam_pass)}
-                      className="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:text-blue-400 dark:hover:bg-blue-900/30 rounded-lg transition-colors flex items-center gap-1.5"
-                    >
-                      <Copy size={16} />
-                      <span className="text-xs font-medium">{copiedCode === exam.online_exam_pass ? t('common.copied', 'Copied!') : t('common.copy', 'Copy')}</span>
-                    </button>
-                  </div>
+                  ) : (
+                    <>
+                      <div className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-400">
+                        <Calendar size={16} />
+                        <span>{exam.schedule || t('exam.noSchedule', 'No schedule set')}</span>
+                      </div>
+
+                      <div className="flex items-center justify-between sm:justify-start gap-4 bg-slate-50 dark:bg-slate-800/50 px-4 py-2 rounded-xl border border-slate-100 dark:border-slate-800">
+                        <div>
+                          <span className="text-[10px] uppercase font-bold text-slate-400 dark:text-slate-500 tracking-wider block mb-0.5">{t('exam.examCode', 'Exam Code')}</span>
+                          <span className="font-bold text-zense-navy dark:text-blue-400 tracking-wide">{exam.online_exam_pass}</span>
+                        </div>
+                        <button
+                          onClick={() => handleCopyCode(exam.online_exam_pass)}
+                          className="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:text-blue-400 dark:hover:bg-blue-900/30 rounded-lg transition-colors flex items-center gap-1.5"
+                          title="Copy Code"
+                        >
+                          <Copy size={16} />
+                          <span className="text-xs font-medium">{copiedCode === exam.online_exam_pass ? t('common.copied', 'Copied!') : t('common.copy', 'Copy')}</span>
+                        </button>
+                      </div>
+                    </>
+                  )}
                 </div>
 
                 {/* Difficulty Breakdown */}
